@@ -1,0 +1,406 @@
+
+
+
+
+
+
+
+
+
+
+
+   
+   
+  
+  
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+	
+
+
+
+	
+	
+		
+		
+	
+
+
+
+	
+		
+	
+	
+
+
+
+
+
+
+
+
+
+  <head>
+  	<title>ExpertFlyer Mobile</title>
+  	<link href="/include/css/expertflyer-mobile-enhanced.css?v=041.4574" type="text/css" rel="stylesheet"/>
+  	<script type="text/javascript" src="/javascript/mobile/expertflyer-app-min.js?v=null"></script>
+
+  	
+  	
+  		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  	
+  	<meta name="format-detection" content="telephone=no">
+  	
+        <style type="text/css">
+        </style>
+   
+  	
+  	<style>
+  		#mobileAppBanner{
+  			color: white;
+			padding: 14px;
+			font-weight: bold;
+			background-color: #3062A1;
+			font-size: 17px;
+  		}
+  		#mobileAppBanner a.yes-please{
+  			text-decoration: none;
+			text-align: center;
+			color: white;
+			font-weight: bold;
+			display: block;
+			box-shadow: black 0px 2px 2px;
+			background: -webkit-gradient(linear, left top, left bottom, from(#2F4158), to(#253141));
+			padding: 20px;
+			border-radius: 15px;
+			border: 1px solid #1F2A39;
+			margin-top:10px;
+  		}
+  		#mobileAppBanner a.no-thanks{
+  			float: right;
+			margin-top: 20px;
+			text-decoration: none;
+			color: #DDD;
+			font-size: smaller;
+			cursor: pointer;
+			font-weight:bold;
+  		}
+  		.clear{
+  			clear:both;
+  		}
+  		#mobileAppAndroidBanner,
+  		#mobileAppItunesBanner{
+  			display:none;
+  		}
+  	</style>
+  </head>
+  
+  <body>
+  	<div id="mobileAppBanner" style="display:none;">
+  		<div id="mobileAppAndroidBanner">
+ 			A Seat Alerts Android App is now available.
+			<a class="yes-please" href="https://play.google.com/store/apps/details?id=com.expertflyer.seatalerts">Download Now >></a>
+  		</div>
+  		<div id="mobileAppItunesBanner">
+			A Seat Alerts iPhone/iPad App is now available.
+ 			<a class="yes-please" href="http://itunes.apple.com/us/app/seat-alerts/id533533342">Download Now >></a>
+ 		</div>
+ 		<a class="no-thanks" href="#" id="bannerNoThanks">No Thanks</a>
+ 		<div class="clear"></div>
+	</div>
+	<div id="header">
+		
+			
+		        <a href="main.do" id="homeLogo"></a>
+			
+			
+		
+	</div>
+	
+	<!--
+<p id="notificationcontainer">Notice: ExpertFlyer.com will be undergoing some minor maintenance at 5:00PM EDT. During that time the website will be briefly unavailable. Thank you for your understanding.</p>
+-->
+
+<!--
+<p id="notificationcontainer">Notice:  There is an issue with one of our data providers that is causing some Award searches to fail, we are working to solve it. Thank you for your understanding.</p>
+-->
+
+
+
+
+
+<!--
+<p id="notificationcontainer">Notice:  ExpertFlyer.com will be undergoing some routine maintenance from 5:00PM EDT to at most 7:00PM EDT today.  During that time the website will be unavailable. Thank you for your understanding.</p>
+-->
+
+	
+	<div id="subHeader">
+		<div id="subHeaderTitle">
+			
+				Flight Availability
+			
+		</div>
+		<div id="subHeaderContent">
+			
+		</div>
+	</div>
+	
+	<div id="errorContainer" class="info-message">
+		
+	</div>
+	
+ 	<div id="content">
+		
+  
+	<form action="/mobile/flightAvailability.do" name="flightAvailability" method="post" class="search-form">
+		<input type="hidden" name="excludeCodeshares" value="excludeCodeshares"/>
+		
+		<div class="form-group">
+			<table>
+	    			<tr>
+	    				<td>From<span class="required"></span></td>
+						<td><input type="text" required="true" name="departingAirportCode" value="" autocorrect="off" placeholder="3 letter airport code" maxlength="3" /></td>
+	    			</tr>
+	    			<tr>
+	    				<td>To<span class="required"></span></td>
+						<td><input type="text" required="true" name="arrivingAirportCode" value="" autocorrect="off" maxlength="3" /></td>
+	    			</tr>
+	    			<tr>
+	    				<td>Connect at</td>
+						<td><input type="text" name="connectingAirport1Code" value="" autocorrect="off" maxlength="3" /></td>
+	    			</tr>
+	    			<tr>
+	    				<td></td>
+						<td><input type="text" name="connectingAirport2Code" value="" autocorrect="off" maxlength="3" /></td>
+	    			</tr>
+	    	</table>
+    	</div>
+    	<div class="form-group">
+    		<table>
+    			<tr>
+    				<td>Depart<span class="required"></span></td>
+    				<td>
+				    	
+				    		
+						    	<input type="number" pattern="[0-9]*" name="departMonth" value="12" class="date-input" size="3" maxlength="2" placeholder="mm" required="true"/> /
+						    	<input type="number" pattern="[0-9]*" name="departDay" value="22" class="date-input" size="3" maxlength="2" placeholder="dd" required="true"/> /
+						    	<input type="number" pattern="[0-9]*" name="departYear" value="13" class="date-input" size="3" maxlength="2" placeholder="yy" required="true"/>
+				    		
+				    		
+				    		
+				        
+				    </td>
+				</tr>
+				<tr>
+			    	<td></td>
+			    	<td>
+				    	<select name="departTime">
+				    		<option value="12:00 AM">Early Morning</option>
+				    		<option value="9:00 AM" >Morning</option>
+				    		<option value="1:00 PM" >Afternoon</option>
+				    		<option value="5:00 PM" >Evening</option>
+				    		<option value="9:00 PM" >Late Evening</option>
+				    	</select>
+			    	</td>
+			    </tr>
+	    	</table>
+	    </div>
+	    <div class="form-group">
+	    	<table>
+	    		<tr>
+			    	<td>Airlines(s)</td>
+			    	<td><input type="text" name="airline1Code" maxlength="2" value="UA" autocorrect="off" placeholder="2 letter airline code"/></td>
+			    </tr>
+			    <tr>
+			    	<td></td>
+		    		<td><input type="text" name="airline2Code" value="" autocorrect="off" maxlength="2" /></td>
+		    	</tr>
+		    	<tr>
+		    		<td></td>
+		    		<td><input type="text" name="airline3Code" value="" autocorrect="off" maxlength="2" /></td>
+		    	</tr>
+		    	<tr>
+		    		<td>Alliance</td>
+			    	<td>
+				    	<select name="allianceCode">
+				        	<option value="">None</option>
+				        	<option value="/*O" >OneWorld</option>
+				        	<option value="/*A" >Star</option>
+				        	<option value="/*S" >SkyTeam</option>
+				        </select>
+			   		</td>
+			    </tr>
+			    <tr class="field-description">
+			    	<td colspan="2">(Selecting an alliance will override all specified airlines)</td>
+			    	<td></td>
+			    </tr>
+			    <tr>
+			    	<td>Classes</td>
+			    	<td><input type="text" name="classCodes" size="22" maxlength="120" value="" autocorrect="off" placeholder="1 letter class code(s)" /></td>
+				</tr>
+				<tr>
+					<td>Connections</td>
+					<td>
+				    	<select name="connectionPref">
+				    		<option value="">Any</option>
+				    		<option value="0" >Direct/Non-Stop Only</option>
+				    		<option value="1" >At least 1 connection</option>
+				    		<option value="2" >At least 2 connections</option>
+				    	</select>
+	    			</td>
+	    		</tr>
+	    	</table>
+	    </div>
+	    <div class="form-group">
+	    	<table>
+	    		<tr>
+					<td>Point of sale</td>
+			    	<td>
+				    	<select name="pos">
+				    		<option value="">USA (Default)</option>
+				    		<option value="UK" >UK</option>
+				    	</select>
+				    </td>
+				</tr>
+			</table>
+    	</div>
+    	<div class="button-container">
+    		<input type="submit" name="search" class="button search" value="Search" />
+		</div>
+	</form>  
+  
+	</div>
+	
+	<div id="footer" align="center">
+		
+			
+				<a href="main.do">Home</a> &middot;
+			
+			
+				<a href="logout.do">Log Out</a> <br />
+			
+			<a href="contactUs.do">Contact Us</a> &middot; 
+		
+			<a href="faq.do">Help</a> &middot; <a href="terms.do">Terms</a> &middot; <a href="privacyPolicy.do">Privacy Policy</a> 
+			
+			
+				&middot; <a href="#viewDesktop" id="viewDesktopVersion">Desktop Version</a>
+			
+		
+		<br/>
+		&copy;2004-2013 Expert Travel Services, LLC
+	</div>
+	
+	<script type="text/javascript">
+		var urlToNavigateTo = ""; 
+		var elements1 = YAHOO.util.Dom.getElementsByClassName("form-results-expanded-state", "span", "content");
+		var elements2 = YAHOO.util.Dom.getElementsByClassName("expandable", "div", "content");
+		var elements = elements1.concat(elements2);
+		
+		YAHOO.util.Event.addListener(elements, "click", function(event){
+			var target = YAHOO.util.Event.getTarget(event);
+			if(YAHOO.util.Dom.hasClass(target, "form-results-expanded-state")||YAHOO.util.Dom.hasClass(target, "expandable")) {
+				if(YAHOO.util.Dom.hasClass(target.parentNode, "expanded")){
+					YAHOO.util.Dom.removeClass(target.parentNode, "expanded");
+				}
+				else{
+					YAHOO.util.Dom.addClass(target.parentNode, "expanded");
+				}
+			}
+		});
+		
+		GUI.on("viewDesktopVersion", "click", function(event){
+			YAHOO.util.Event.stopEvent( event );
+			YAHOO.util.Cookie.set("mobilePref", "ViewDesktop", {
+			    path: "/",
+			    expires: new Date("January 12, 2900")
+			});
+			window.location.href='https://www.expertflyer.com/';
+		}, this, true);   
+		
+		if("true" == "true" && ("3" == 4 || "3" == 2)){
+			var mobileAppCookie = YAHOO.util.Cookie.get("mobileApp");
+			
+			if( (null == mobileAppCookie) && (navigator.userAgent.match(/iPhone/i) || navigator.userAgent.match(/iPod/i) || navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/Android/i)) ){
+				if(navigator.userAgent.match(/Android/i)){
+					GUI.show("mobileAppAndroidBanner");
+				}
+				else{
+					GUI.show("mobileAppItunesBanner");
+				}
+				GUI.show("mobileAppBanner");
+			}
+			
+			GUI.on("bannerNoThanks", "click", function(event){
+				YAHOO.util.Event.stopEvent( event );
+				YAHOO.util.Cookie.set("mobileApp", "noThanks", {
+				    path: "/",
+				    expires: new Date("January 12, 2900")
+				});
+				GUI.hide("mobileAppBanner");
+			}, this, true);   
+		}
+		
+		function getUrlFunction(){
+			return "getUrl";
+		}
+		
+		function setUrlNative(url){
+			urlToNavigateTo	= url;	
+			return false;
+		};
+		
+		function getUrl(){
+			var temp = "";
+			if(urlToNavigateTo){
+				temp = urlToNavigateTo;
+				urlToNavigateTo = "";
+			}
+			return temp;
+		};
+		
+		GUI.util.load( function() {
+			
+			if("" >= 1.3){
+				var nativeLinks = YAHOO.util.Dom.getElementsByClassName("native-url-link", "a", "content");
+				YAHOO.util.Event.addListener(nativeLinks, "click", function(event){
+					YAHOO.util.Event.stopEvent( event );
+					var target = YAHOO.util.Event.getTarget(event);
+					setUrlNative(target.href);
+				});
+			}
+		});
+		
+	</script>
+	
+	
+		
+	
+		
+		
+		<img src="/ga.jsp?utmac=MO-519699-1&utmn=434366213&utmr=-&utmp=%2Fmobile%2FflightAvailability.do&guid=ON" />
+	
+
+  </body>
+</html>
