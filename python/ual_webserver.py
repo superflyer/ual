@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from bottle import route, run, template
+from bottle import route, run, template, Bottle
 from bottle import get, post, request
 from bottle import static_file
 from time import localtime, strftime
@@ -13,24 +13,26 @@ from ual import *
 # global variable to hold session
 S = ual_session(ual_user,ual_pwd,useragent=spoofUA)
 
+app = Bottle()
+
 # web page defs
-@route('/hello/:name')
+@app.route('/hello/:name')
 def index(name='World'):
 	print(name)
 	return template('<b>Hello {{name}}</b>!', name=name)
 
 
-@route('/include/images/enhanced-mobile/<filename>')
-@route('/static/<filename>')
+@app.route('/include/images/enhanced-mobile/<filename>')
+@app.route('/static/<filename>')
 def server_static(filename):
 	return static_file(filename, root='static')
 
 
-@get('/ual') # or @route('/login')
+@app.route('/')
 def query_form():
     return template("query", today=datetime.today())
 
-@post('/ual') # or @route('/login', method='POST')
+@app.route('/', method='POST')
 def query_submit():
 	global S
 
@@ -90,4 +92,4 @@ def query_submit():
 #run(host='dfreeman-md.linkedin.biz', port=8080)
 
 if __name__=='__main__':
-	run(host='localhost', port=8080)
+	run(app, host='0.0.0.0', port=8080)

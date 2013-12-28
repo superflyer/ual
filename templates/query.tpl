@@ -69,7 +69,7 @@
 	
  	<div id="content">
 		
-	<form action="/ual" name="awardUpgrade" method="post">
+	<form action="/" name="awardUpgrade" method="post">
 
 		<div class="form-group">
    			<table>
