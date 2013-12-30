@@ -135,7 +135,12 @@ class Segment(object):
 	def format_arrairport(self):
 		return format_airport(self.arrive_airport)
 	def bucket_repr(self):
-		return ' '.join([b+str(self.search_results[b])+(str(self.search_results[b+'N']) if b in Nclasses else '') for b in self.search_query]) if self.search_query else self.availability.strip()
+		if self.search_query:
+			return ' '.join([b+str(self.search_results[b])+(str(self.search_results[b+'N']) if b in Nclasses else '') for b in self.search_query])
+		elif self.search_query=='':
+			return 'NA'
+		else:
+			return self.availability.strip()
 	def condensed_repr(self):
 		self.format_deptime()
 		self.format_arrtime()
@@ -324,6 +329,7 @@ def run_alerts(ses=None,filename='alerts/alert_defs.txt'):
 			data = line.strip().split('\t')
 			if data[0][0]=='#' or len(data) < 3: continue
 			a = alert_params(*data)
+			a.nonstop=True
 			alert_defs.append(a)
 		except:
 			stderr.write('Error parsing alert definition: '+line)
