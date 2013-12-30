@@ -98,8 +98,9 @@
 										<tr>
 											<td class="description">{{seg.flightno}}</td>
 											<td class="info">
-												{{seg.depart_airport}} {{seg.depart_time}} &rarr; {{seg.arrive_airport}} {{seg.arrive_time}}
-												<div class="info-subheader">{{seg.search_results if seg.search_results else seg.availability}} 
+												{{seg.format_depairport()}} {{seg.depart_datetime.strftime('%H:%M')}} &rarr; 
+												{{seg.format_arrairport()}} {{seg.arrive_datetime.strftime('%H:%M')+seg.day_offset}}
+												<div class="info-subheader">{{seg.bucket_repr()}} 
 												</div>
 											</td>
 										</tr>

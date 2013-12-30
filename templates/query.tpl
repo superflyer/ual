@@ -160,7 +160,7 @@
 		</div>
 		
     	<div class="button-container">
-    		<input type="submit" action="/ual"/>
+    		<input type="submit" name="search" class="button search" value="Search" />
 		</div>
 	</form>  
   

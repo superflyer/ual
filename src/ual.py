@@ -22,6 +22,8 @@ Yclasses = ['Y','YN','B','M','E','U','H','HN','Q','V','W','S','T','L','K','G','N
 Nclasses = ['R','I','X']  # removing ON since this is C->F upgrade
 min_avail = 'FJY'
 award_buckets = 'OIRX'
+#bucket_regex = re.compile(', '.join([c+'[0-9]' for c in Yclasses]))
+bucket_regex = re.compile(', '.join(['[A-Z][0-9]']*10))
 
 aircraft_types = ['Boeing','Airbus','Canadair','Embraer','Avro']
 airline_codes = ['UA','LH']
@@ -74,7 +76,7 @@ def format_aircraft(aircraft):
 	else:
 		return aircraft
 
-def long_search_def(start_date,end_date,depart_airport,arrive_airport,buckets='',flightno='',filename='long_search_defs.txt'):
+def long_search_def(start_date,end_date,depart_airport,arrive_airport,buckets='',flightno='',filename='alerts/long_search_defs.txt'):
 	alert_defs = []
 	cur_datetime = parser.parse(start_date)
 	F = open(filename,'aw')
@@ -128,6 +130,12 @@ class Segment(object):
 				for offset in ['-1','+1','+2']:
 					if self.arrive_datetime.day == (self.depart_datetime+timedelta(days=int(offset))).day:
 						self.day_offset = offset
+	def format_depairport(self):
+		return format_airport(self.depart_airport)
+	def format_arrairport(self):
+		return format_airport(self.arrive_airport)
+	def bucket_repr(self):
+		return ' '.join([b+str(self.search_results[b])+(str(self.search_results[b+'N']) if b in Nclasses else '') for b in self.search_query]) if self.search_query else self.availability.strip()
 	def condensed_repr(self):
 		self.format_deptime()
 		self.format_arrtime()
@@ -138,7 +146,7 @@ class Segment(object):
 			format_airport(self.arrive_airport),
 			self.arrive_datetime.strftime('%H:%M')+self.day_offset,
 			format_aircraft(self.aircraft),
-			' '.join([b+str(self.search_results[b])+(str(self.search_results[b+'N']) if b in Nclasses else '') for b in self.search_query]) if self.search_query else self.availability.strip()]
+			self.bucket_repr()]
 		return ' '.join(output_params)
 
 	def search_buckets(self,buckets):
@@ -204,7 +212,7 @@ class ual_session(requests.Session):
 			login_params['ctl00$ContentInfo$accountsummary$OpPin1$txtOPPin'] = pwd
 			signin = self.post('https://www.united.com/web/en-US/default.aspx',data=login_params,allow_redirects=True)
 			if logging:
-				F = codecs.open('signin.html','w','utf-8')
+				F = codecs.open('logs/signin.html','w','utf-8')
 				F.write(signin.text)
 				F.close()
 			if 'The sign-in information you entered does not match an account in our records.' in signin.text or user not in signin.text:
@@ -282,7 +290,7 @@ def extract_data(input_html):
 		tripdata = []
 		for s in segs:
 			newseg = Segment()
-			buckets = s[2].find(text=re.compile(', '.join([c+'[0-9]' for c in Yclasses])))
+			buckets = s[2].find(text=bucket_regex)
 			if buckets:
 				newseg.availability = buckets
 			deptime = s[0].find(attrs={"class": "timeDepart"})
@@ -298,7 +306,7 @@ def extract_data(input_html):
 	return alltrips
 
 
-def run_alerts(ses=None,filename='alert_defs.txt'):
+def run_alerts(ses=None,filename='alerts/alert_defs.txt'):
 	# open Session
 	if not ses:
 		try:
@@ -358,7 +366,7 @@ def ual():
 	return S
 
 if __name__=='__main__':
-	if sys.argv[1]:
+	if len(sys.argv) > 1:
 		S = run_alerts(ses=None,filename=sys.argv[1])
 	else:
 		S = run_alerts()

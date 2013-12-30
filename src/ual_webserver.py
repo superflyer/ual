@@ -11,7 +11,10 @@ import sys
 from ual import *
 
 # global variable to hold session
-S = ual_session(ual_user,ual_pwd,useragent=spoofUA)
+if len(sys.argv) > 1 and sys.argv[1] == '-t':
+	pass
+else:
+	S = ual_session(ual_user,ual_pwd,useragent=spoofUA)
 
 app = Bottle()
 
@@ -30,7 +33,7 @@ def server_static(filename):
 
 @app.route('/')
 def query_form():
-    return template("query", today=datetime.today())
+    return template("templates/query", today=datetime.today())
 
 @app.route('/', method='POST')
 def query_submit():
@@ -56,7 +59,7 @@ def query_submit():
 	if parser.parse(depart_date) + timedelta(days=1,minutes=-1) < datetime.today() :
 		depart_date = depart_month + '/' + depart_day + '/' + str(date.today().year+1)
 	if parser.parse(depart_date) > datetime.today() + timedelta(days=331):
-		return template("error",err='Depart date is in the past or more than 331 days in the future.')
+		return template("templates/error",err='Depart date is in the past or more than 331 days in the future.')
 
 	buckets = ''
 	if not all_classes:
@@ -71,12 +74,18 @@ def query_submit():
 
 	flightno = airline + flightno
 
-	params = alert_params(depart_date,depart_airport,arrive_airport,flightno,buckets,nonstop)
+	params = alert_params(depart_date,depart_airport,arrive_airport,flightno,buckets,nonstop=nonstop)
 	if len(sys.argv) > 1 and sys.argv[1] == '-t':
-		F = open('../international.html')
+		F = open('ual_test/international.html')
 		raw_data = F.read()
 		F.close()
 		result = extract_data(raw_data)
+		for trip in result:
+			for seg in trip:
+				seg.format_deptime()
+				seg.format_arrtime()
+				if params.buckets:
+					seg.search_buckets(params.buckets)
 	else:
 		if S.last_login_time < datetime.now() - timedelta(minutes=30):
 			S = ual_session(ual_user,ual_pwd,useragent=spoofUA)
@@ -87,9 +96,10 @@ def query_submit():
 	sys.stdout.write(strftime("%Y-%m-%d %H:%M:%S", localtime())+'\n')
 	sys.stdout.flush()
 	
-	return template("results", params=params, data=result)
+	return template("templates/results", params=params, data=result)
 
 #run(host='dfreeman-md.linkedin.biz', port=8080)
 
 if __name__=='__main__':
-	run(app, host='0.0.0.0', port=8080)
+	run(app, host='localhost', port=8080)
+#	run(app, host='0.0.0.0', port=8080)
