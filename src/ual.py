@@ -7,6 +7,7 @@ import codecs
 import sys
 import smtplib
 import os
+from copy import deepcopy
 from datetime import *
 from dateutil import parser
 from email.mime.text import MIMEText
@@ -177,8 +178,8 @@ class Segment(object):
 
 class alert_params(object):
 	def __init__(self,depart_date,depart_airport,arrive_airport,flightno=None,buckets=None,nonstop=False):
-		self.depart_airport=depart_airport
-		self.arrive_airport=arrive_airport
+		self.depart_airport=depart_airport.upper()
+		self.arrive_airport=arrive_airport.upper()
 		self.buckets=buckets.upper() if buckets else None
 		self.flightno=flightno
 		# need to do some error-checking on dates
@@ -198,6 +199,8 @@ class alert_params(object):
 			'NS' if self.nonstop else ''])
 	def __str__(self):
 		return self.__repr__()
+	def copy(self):
+		return(deepcopy(self))
 
 
 
@@ -311,7 +314,7 @@ def extract_data(input_html):
 	return alltrips
 
 
-def run_alerts(ses=None,filename='alerts/alert_defs.txt'):
+def run_alerts(ses=None,filename='alerts/alert_defs.txt',aggregate=False):
 	# open Session
 	if not ses:
 		try:
@@ -328,13 +331,26 @@ def run_alerts(ses=None,filename='alerts/alert_defs.txt'):
 		try:
 			data = line.strip().split('\t')
 			if data[0][0]=='#' or len(data) < 3: continue
+			if aggregate:
+				end_date = data.pop(1)
+			else:
+				end_date = data[0]
 			a = alert_params(*data)
 			a.nonstop=True
-			alert_defs.append(a)
+			cur_datetime = parser.parse(data[0])
+			while cur_datetime <= parser.parse(end_date):
+				b = a.copy()
+				b.depart_date = cur_datetime.strftime('%m/%d/%y')
+				b.depart_datetime = cur_datetime
+				alert_defs.append(b)
+				cur_datetime += timedelta(1)
 		except:
 			stderr.write('Error parsing alert definition: '+line)
 			continue
+	F.close()
+
 	print datetime.today().strftime('%c')
+	results = []
 	for a in alert_defs:
 		# search for alerts
 		try:
@@ -348,7 +364,13 @@ def run_alerts(ses=None,filename='alerts/alert_defs.txt'):
 		for seg in segs:
 			print(seg.condensed_repr())
 			if sum(seg.search_results.values()) > 0:
-				seg.send_alert_email(a)
+				results.append(seg)
+				if not aggregate:
+					seg.send_alert_email(a)
+	if aggregate:
+		subject = 'SuperFlyer search results found'
+		message = '\n'.join([seg.condensed_repr() for seg in results])
+		e = send_email(subject,message)
 	return(ses)
 
 
@@ -373,7 +395,10 @@ def ual():
 
 if __name__=='__main__':
 	if len(sys.argv) > 1:
-		S = run_alerts(ses=None,filename=sys.argv[1])
+		if len(sys.argv) > 2 and sys.argv[2]=='-a':
+			S = run_alerts(ses='x',filename=sys.argv[1],aggregate=True)
+		else:
+			S = run_alerts(ses=None,filename=sys.argv[1])
 	else:
 		S = run_alerts()
 
