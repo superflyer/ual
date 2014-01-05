@@ -369,7 +369,7 @@ def run_alerts(ses=None,filename='alerts/alert_defs.txt',aggregate=False):
 					seg.send_alert_email(a)
 	if aggregate:
 		subject = 'SuperFlyer search results found'
-		message = '\n'.join([seg.condensed_repr() for seg in results])
+		message = '\n'.join(sorted([seg.condensed_repr() for seg in results]))
 		e = send_email(subject,message)
 	return(ses)
 
@@ -396,7 +396,7 @@ def ual():
 if __name__=='__main__':
 	if len(sys.argv) > 1:
 		if len(sys.argv) > 2 and sys.argv[2]=='-a':
-			S = run_alerts(ses='x',filename=sys.argv[1],aggregate=True)
+			S = run_alerts(ses=None,filename=sys.argv[1],aggregate=True)
 		else:
 			S = run_alerts(ses=None,filename=sys.argv[1])
 	else:
