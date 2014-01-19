@@ -380,7 +380,7 @@ def run_alerts(ses=None,filename='alerts/alert_defs.txt',aggregate=False):
 	if aggregate:
 		if results:
 			subject = 'SuperFlyer search results found'
-			message = '\n'.join([seg.condensed_repr() for seg in results])
+			message = '\n'.join(sorted([seg.condensed_repr() for seg in results]))
 			e = send_email(subject,message)
 		if errors:
 			subject_err = 'Errors in SuperFlyer search'
