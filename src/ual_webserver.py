@@ -6,6 +6,7 @@ from bottle import static_file
 from time import localtime, strftime
 from datetime import *
 from dateutil import parser
+from re import search
 import sys
 
 from ual import *
@@ -31,11 +32,17 @@ def server_static(filename):
 	return static_file(filename, root='static')
 
 
-@app.route('/')
+@app.route('/ual')
 def query_form():
-    return template("templates/query", today=datetime.today())
+	if request.query.refine:
+		q = request.query
+		params = alert_params(q.depart_date,q.depart_airport,q.arrive_airport,q.flightno,q.buckets,nonstop=q.nonstop)
+	else:
+		params = None
+	print(params)
+	return template("templates/query", today=datetime.today(), params=params)
 
-@app.route('/', method='POST')
+@app.route('/searchresults', method='POST')
 def query_submit():
 	global S
 
@@ -90,6 +97,8 @@ def query_submit():
 		if S.last_login_time < datetime.now() - timedelta(minutes=30):
 			S = ual_session(ual_user,ual_pwd,useragent=spoofUA)
 		result = S.basic_search(params)
+		if params.nonstop:
+			result = [t for t in result if len(t)==1]
 
 		
 	#logging
@@ -101,5 +110,5 @@ def query_submit():
 #run(host='dfreeman-md.linkedin.biz', port=8080)
 
 if __name__=='__main__':
-	#run(app, host='localhost', port=8080, reloader=True)
-	run(app, host='0.0.0.0', port=8080)
+	run(app, host='localhost', port=8080, reloader=True)
+	#run(app, host='0.0.0.0', port=8080)

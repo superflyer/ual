@@ -72,7 +72,8 @@
 		</div>
 		<div>
 					Flying
-					<b>UA  </b>
+					<b>UA </b>
+					{{'Nonstop' if params.nonstop else ''}}
 		</div>
 		<div>
 		</div>
@@ -110,19 +111,7 @@
 									<table>
 										<tr>
 											<td class="description"></td>
-											<td class="info"><label>Stops: </label>0</td>
-										</tr>
-										<tr>
-											<td class="description"></td>
 											<td class="info"><label>Aircraft: </label>{{seg.aircraft}}</td>
-										</tr>
-										<tr>
-											<td class="description"></td>
-											<td class="info"><label>Frequency: </label>M,T,W</td>
-										</tr>
-										<tr>
-											<td class="description"></td>
-											<td class="info"><label>Reliability: </label>100% / 8m</td>
 										</tr>
 										<tr>
 											<td colspan="2">
@@ -139,13 +128,9 @@
 						</div>
 						% end
 		<ul class="menu">
-			<li><a href="flightAvailability.do"><span>New Search</span></a></li>
-			<li><a href="flightAvailability.do?departingAirportCode=SFO&arrivingAirportCode=SAN&departDate=12/24/13&departTime=12:00 AM&connectingAirport1Code=&connectingAirport2Code=&airline1Code=UA&airline2Code=&airline3Code=&classCodes=&connectionPref=&pos=&allianceCode=&excludeCodeshares=false&refine=true"><span>Refine Search</span></a></li>
-				<li><a href="flightAvailability.do?departingAirportCode=SAN&arrivingAirportCode=SFO&connectingAirport1Code=&connectingAirport2Code=&airline1Code=UA&airline2Code=&airline3Code=&classCodes=&connectionPref=&pos=&allianceCode=&excludeCodeshares=false&refine=true"><span>Refine Search for Return Availability (SAN-SFO)</span></a></li>
-			<li><a href="fareInformation.do?departingAirportCode=SFO&arrivingAirportCode=SAN&departDate=12/24/13&passthrough=true"><span>View fares from SFO to SAN</span></a></li>
-				<li><a href="fareInformation.do?departingAirportCode=SFO&arrivingAirportCode=SAN&departDate=12/24/13&airline1Code=UA&airline2Code=&airline3Code=&classCodes=&passthrough=true"><span>View fares from SFO to SAN on UA  </span></a></li>
-				 
-				<li><a href="awardUpgrade.do?departingAirportCode=SFO&arrivingAirportCode=SAN&departDate=12/24/13&departTime=12:00 AM&connectingAirport1Code=&connectingAirport2Code=&airlineCode=UA&connectionPref=&allianceCode=&refine=true&next=true"><span>Search for Awards & Upgrades for SFO to SAN on UA</span></a></li>
+			<li><a href="/ual"><span>New Search</span></a></li>
+			<li><a href="/ual?depart_airport={{params.depart_airport.upper()}}&arrive_airport={{params.arrive_airport.upper()}}&depart_date={{params.depart_date}}&buckets={{params.buckets}}&flightno={{params.flightno}}&nonstop={{params.nonstop}}&refine=true"><span>Refine Search</span></a></li>
+			<li><a href="/ual?depart_airport={{params.arrive_airport.upper()}}&arrive_airport={{params.depart_airport.upper()}}&depart_date={{params.depart_date}}&buckets={{params.buckets}}&flightno={{params.flightno}}&nonstop={{params.nonstop}}&refine=true"><span>Refine Search for Return Availability ({{params.arrive_airport.upper()}}-{{params.depart_airport.upper()}})</span></a></li>
 		</ul>
 	</form>  
   
@@ -153,11 +138,6 @@
 	<div id="footer" align="center">
 				<a href="main.do">Home</a> &middot;
 				<a href="logout.do">Log Out</a> <br />
-			<a href="contactUs.do">Contact Us</a> &middot; 
-			<a href="faq.do">Help</a> &middot; <a href="terms.do">Terms</a> &middot; <a href="privacyPolicy.do">Privacy Policy</a> 
-				&middot; <a href="#viewDesktop" id="viewDesktopVersion">Desktop Version</a>
-		<br/>
-		&copy;2004-2013 Expert Travel Services, LLC
 	</div>
 	<script type="text/javascript">
 		var urlToNavigateTo = ""; 

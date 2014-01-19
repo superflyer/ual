@@ -69,25 +69,25 @@
 	
  	<div id="content">
 		
-	<form action="/" name="awardUpgrade" method="post">
+	<form action="/searchresults" name="awardUpgrade" method="post">
 
 		<div class="form-group">
    			<table>
    				<tr>
     				<td>From<span class="required"></span></td>
-					<td><input type="text" required="true" name="departAirport" value="" autocorrect="off" placeholder="3 letter airport code" maxlength="3" /></td>
+					<td><input type="text" required="true" name="departAirport" value="{{params.depart_airport if params else ''}}" autocorrect="off" placeholder="3 letter airport code" maxlength="3" /></td>
     			</tr>
     			<tr>
     				<td>To<span class="required"></span></td>
-					<td><input type="text" required="true" name="arriveAirport" value="" autocorrect="off" maxlength="3" /></td>
+					<td><input type="text" required="true" name="arriveAirport" value="{{params.arrive_airport if params else ''}}" autocorrect="off" maxlength="3" /></td>
     			</tr>
     			<tr>
     				<td>Depart<span class="required"></span></td>
     				<td>
 				    	
 				    		
-				    	<input type="number" pattern="[0-9]*" name="departMonth" value="{{today.month}}" class="date-input" size="3" maxlength="2" placeholder="mm" required="true"/> /
-				    	<input type="number" pattern="[0-9]*" name="departDay" value="{{today.day}}" class="date-input" size="3" maxlength="2" placeholder="dd" required="true"/> 
+				    	<input type="number" pattern="[0-9]*" name="departMonth" value="{{params.depart_datetime.month if params else today.month}}" class="date-input" size="3" maxlength="2" placeholder="mm" required="true"/> /
+				    	<input type="number" pattern="[0-9]*" name="departDay" value="{{params.depart_datetime.day if params else today.day}}" class="date-input" size="3" maxlength="2" placeholder="dd" required="true"/> 
 				    		
 				        
 				    </td>
@@ -99,27 +99,27 @@
 		<div class="form-group">
    			<table>
    				<tr>
-					<td align=center><input type="checkbox" name="classCodeO" value="O"></td>
+					<td align=center><input type="checkbox" name="classCodeO" value="O" {{'checked' if 'O' in params.buckets else ''}}></td>
     				<td><span>First - Saver Award (O)</span></td>			    			
 				</tr>
    				<tr>
-					<td align=center><input type="checkbox" name="classCodeI" value="I"></td>
+					<td align=center><input type="checkbox" name="classCodeI" value="I" {{'checked' if 'I' in params.buckets else ''}}></td>
     				<td><span>Business - Saver Award (I/IN)</span></td>			    			
 				</tr>
    				<tr>
-					<td align=center><input type="checkbox" name="classCodeR" value="R"></td>
+					<td align=center><input type="checkbox" name="classCodeR" value="R" {{'checked' if 'R' in params.buckets else ''}}></td>
     				<td><span>Business - Upgrade (R/RN)</span></td>			    			
 				</tr>
    				<tr>
-					<td align=center><input type="checkbox" name="classCodeX" value="X"></td>
+					<td align=center><input type="checkbox" name="classCodeX" value="X" {{'checked' if 'X' in params.buckets else ''}}></td>
     				<td><span>Coach - Saver Award (X/XN)</span></td>			    			
 				</tr>
     			<tr>
-					<td align=center><input type="checkbox" name="otherCheck" value="True"></td>
-    				<td>Other: <input type="text" size=20 name="otherClassCodes" value="" autocorrect="off"/></td>
+					<td align=center><input type="checkbox" name="otherCheck" value="True" {{'checked' if params.buckets and params.other_buckets() else ''}}></td>
+    				<td>Other: <input type="text" size=20 name="otherClassCodes" value="{{params.other_buckets()}}" autocorrect="off"/></td>
     			</tr>
    				<tr>
-					<td align=center><input type="checkbox" name="allClasses" value="True"></td>
+					<td align=center><input type="checkbox" name="allClasses" value="True" {{'checked' if params and not params.buckets else ''}}></td>
     				<td><span>All booking codes</span></td>			    			
 				</tr>
     		</table>
@@ -153,13 +153,17 @@
 				</tr>
    				<tr>
     				<td><span>Nonstop</span></td>			    			
-					<td><input type="checkbox" name="nonstop" value="True"></td>
+					<td><input type="checkbox" name="nonstop" value="True" {{'checked' if params.nonstop else ''}}></td>
 				</tr>
 
 		   	</table>
 		</div>
 		
-    	<div class="button-container">
+		<div class="button-container">
+			<input type="image" src="static/button-submit.png" alt="Submit">
+		</div>
+
+<!--    	<div class="button-container">
     		<input type="submit" name="search" class="button search" value="Search" />
 		</div>
 	</form>  

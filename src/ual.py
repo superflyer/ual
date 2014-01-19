@@ -180,13 +180,13 @@ class alert_params(object):
 	def __init__(self,depart_date,depart_airport,arrive_airport,flightno=None,buckets=None,nonstop=False):
 		self.depart_airport=depart_airport.upper()
 		self.arrive_airport=arrive_airport.upper()
-		self.buckets=buckets.upper() if buckets else None
+		self.buckets=buckets.upper() if buckets else ''
 		self.flightno=flightno
 		# need to do some error-checking on dates
-		depart_datetime = parser.parse(depart_date)  # assume h:mm = 0:00
-		if depart_datetime + timedelta(days=1,minutes=-1) < datetime.today() :
+		self.depart_datetime = parser.parse(depart_date)  # assume h:mm = 0:00
+		if self.depart_datetime + timedelta(days=1,minutes=-1) < datetime.today() :
 			raise Exception('Depart date is in the past.')
-		if depart_datetime > datetime.today() + timedelta(days=331):
+		if self.depart_datetime > datetime.today() + timedelta(days=331):
 			raise Exception('Depart date is more than 331 days in the future.')
 		self.depart_date=depart_date
 		self.nonstop=nonstop
@@ -201,6 +201,12 @@ class alert_params(object):
 		return self.__repr__()
 	def copy(self):
 		return(deepcopy(self))
+	def other_buckets(self):
+		others = re.search('[^'+award_buckets+']+',self.buckets)
+		if others:
+			return others.group()
+		else:
+			return ''
 
 
 
