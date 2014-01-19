@@ -235,7 +235,7 @@ class ual_session(requests.Session):
 				self.user = user
 			self.last_login_time = datetime.now()
 
-	def search(self,params,logging=False):
+	def search(self,params,logging=True):
 		search_params = set_search_params(self.cookies['SID'])
 		search_params['ctl00$ContentInfo$Booking1$Origin$txtOrigin']=params.depart_airport
 		search_params['ctl00$ContentInfo$Booking1$Destination$txtDestination']=params.arrive_airport
