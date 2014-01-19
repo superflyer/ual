@@ -99,24 +99,24 @@
 		<div class="form-group">
    			<table>
    				<tr>
-					<td align=center><input type="checkbox" name="classCodeO" value="O" {{'checked' if 'O' in params.buckets else ''}}></td>
+					<td align=center><input type="checkbox" name="classCodeO" value="O" {{'checked' if params and 'O' in params.buckets else ''}}></td>
     				<td><span>First - Saver Award (O)</span></td>			    			
 				</tr>
    				<tr>
-					<td align=center><input type="checkbox" name="classCodeI" value="I" {{'checked' if 'I' in params.buckets else ''}}></td>
+					<td align=center><input type="checkbox" name="classCodeI" value="I" {{'checked' if params and 'I' in params.buckets else ''}}></td>
     				<td><span>Business - Saver Award (I/IN)</span></td>			    			
 				</tr>
    				<tr>
-					<td align=center><input type="checkbox" name="classCodeR" value="R" {{'checked' if 'R' in params.buckets else ''}}></td>
+					<td align=center><input type="checkbox" name="classCodeR" value="R" {{'checked' if params and 'R' in params.buckets else ''}}></td>
     				<td><span>Business - Upgrade (R/RN)</span></td>			    			
 				</tr>
    				<tr>
-					<td align=center><input type="checkbox" name="classCodeX" value="X" {{'checked' if 'X' in params.buckets else ''}}></td>
+					<td align=center><input type="checkbox" name="classCodeX" value="X" {{'checked' if params and 'X' in params.buckets else ''}}></td>
     				<td><span>Coach - Saver Award (X/XN)</span></td>			    			
 				</tr>
     			<tr>
-					<td align=center><input type="checkbox" name="otherCheck" value="True" {{'checked' if params.buckets and params.other_buckets() else ''}}></td>
-    				<td>Other: <input type="text" size=20 name="otherClassCodes" value="{{params.other_buckets()}}" autocorrect="off"/></td>
+					<td align=center><input type="checkbox" name="otherCheck" value="True" {{'checked' if params and params.other_buckets() else ''}}></td>
+    				<td>Other: <input type="text" size=20 name="otherClassCodes" value="{{params.other_buckets() if params else ''}}" autocorrect="off"/></td>
     			</tr>
    				<tr>
 					<td align=center><input type="checkbox" name="allClasses" value="True" {{'checked' if params and not params.buckets else ''}}></td>
@@ -153,7 +153,7 @@
 				</tr>
    				<tr>
     				<td><span>Nonstop</span></td>			    			
-					<td><input type="checkbox" name="nonstop" value="True" {{'checked' if params.nonstop else ''}}></td>
+					<td><input type="checkbox" name="nonstop" value="True" {{'checked' if params and params.nonstop else ''}}></td>
 				</tr>
 
 		   	</table>
