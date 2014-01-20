@@ -254,6 +254,8 @@ class ual_session(requests.Session):
 		trips = extract_data(results)
 		found_segs = []
 		for t in trips:
+			if params.nonstop and len(t) > 1:
+				continue
 			for seg in t:
 				seg.search_buckets(params.buckets)
 				if not params.flightno or seg.flightno in params.flightno:
