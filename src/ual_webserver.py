@@ -110,5 +110,5 @@ def query_submit():
 #run(host='dfreeman-md.linkedin.biz', port=8080)
 
 if __name__=='__main__':
-	run(app, host='localhost', port=8080, reloader=True)
-	#run(app, host='0.0.0.0', port=8080)
+	#run(app, host='localhost', port=8080, reloader=True)
+	run(app, host='0.0.0.0', port=8080)
