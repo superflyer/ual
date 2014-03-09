@@ -21,6 +21,7 @@ Fclasses = ['F','FN','A','ON','O']
 Jclasses = ['J','JN','C','D','Z','ZN','P','PN','R','RN','IN','I']
 Yclasses = ['Y','YN','B','M','E','U','H','HN','Q','V','W','S','T','L','K','G','N','XN','X']
 Nclasses = ['R','I','X']  # removing ON since this is C->F upgrade
+remapped_classes = {'1':'HN'}
 min_avail = 'FJY'
 award_buckets = 'OIRX'
 #bucket_regex = re.compile(', '.join([c+'[0-9]' for c in Yclasses]))
@@ -159,7 +160,10 @@ class Segment(object):
 		results = {}
 		self.search_query = ''
 		for b in buckets.upper():
-			inv = re.match('.*'+b+'([0-9]).*',self.availability)
+			if b in remapped_classes:
+				inv = re.match('.*'+remapped_classes[b]+'([0-9]).*',self.availability)
+			else:
+				inv = re.match('.*'+b+'([0-9]).*',self.availability)
 			if inv:
 				results[b] = int(inv.group(1))
 				self.search_query += b
@@ -282,7 +286,11 @@ class ual_session(requests.Session):
 		while cur_datetime <= parser.parse(end_date):
 			depart_date = cur_datetime.strftime('%m/%d/%y')
 			params = alert_params(depart_date,depart_airport,arrive_airport,buckets=buckets,flightno=None,nonstop=True)
-			search_results = self.alert_search(params)
+			try:
+				search_results = self.alert_search(params)
+			except Exception as e:
+				print e
+				continue
 			for seg in search_results:
 				if sum(seg.search_results.values()) > 0:
 					print(seg.condensed_repr())
