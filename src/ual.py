@@ -138,7 +138,7 @@ class Segment(object):
 		return format_airport(self.arrive_airport)
 	def bucket_repr(self):
 		if self.search_query:
-			return ' '.join([b+str(self.search_results[b])+(str(self.search_results[b+'N']) if b in Nclasses else '') for b in self.search_query])
+			return ' '.join([(remapped_classes[b] if b in remapped_classes else b)+str(self.search_results[b])+(str(self.search_results[b+'N']) if b in Nclasses else '') for b in self.search_query])
 		elif self.search_query=='':
 			return 'NA'
 		else:
@@ -405,7 +405,8 @@ def run_alerts(ses=None,filename='alerts/alert_defs.txt',aggregate=False):
 
 def test():
 	S = ual_session(ual_user,ual_pwd,useragent=spoofUA)
-	X = S.long_search('7/11/14','7/25/14','SFO','JFK','I')
+	P = alert_params('7/11/14','SFO','JFK',None,'I1')
+	X = S.basic_search(P)
 	return(S,X)
 
 def scratch():
