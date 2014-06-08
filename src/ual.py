@@ -390,7 +390,8 @@ def run_alerts(ses=None,filename='alerts/alert_defs.txt',aggregate=False):
 	if aggregate:
 		if results:
 			subject = 'SuperFlyer search results found'
-			message = '\n'.join(sorted([seg.condensed_repr() for seg in results]))
+#			message = '\n'.join(sorted([seg.condensed_repr() for seg in results]))
+			message = '\n'.join([seg.condensed_repr() for seg in sorted(results, key=lambda x: x.depart_datetime)])
 			e = send_email(subject,message)
 		if errors:
 			subject_err = 'Errors in SuperFlyer search'
@@ -404,10 +405,11 @@ def run_alerts(ses=None,filename='alerts/alert_defs.txt',aggregate=False):
 #S,D = basic_search('9/20/14','sfo','fra',min_avail+award_buckets)
 
 def test():
+	from itertools import chain
 	S = ual_session(ual_user,ual_pwd,useragent=spoofUA)
-	P = alert_params('7/11/14','SFO','JFK',None,'I1')
+	P = alert_params('10/30/14','MSP','SFO',None,'X1')
 	X = S.basic_search(P)
-	return(S,X)
+	return(S,list(chain.from_iterable(X)))
 
 def scratch():
 	x = X[0][0]
