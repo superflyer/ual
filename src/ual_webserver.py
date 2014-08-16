@@ -15,7 +15,8 @@ from ual import *
 if len(sys.argv) > 1 and sys.argv[1] == '-t':
 	pass
 else:
-	S = ual_session(ual_user,ual_pwd,useragent=spoofUA)
+	config = configure()
+	S = ual_session(config.ual_user,config.ual_pwd,useragent=config.spoofUA)
 
 app = Bottle()
 
@@ -95,7 +96,8 @@ def query_submit():
 					seg.search_buckets(params.buckets)
 	else:
 		if S.last_login_time < datetime.now() - timedelta(minutes=30):
-			S = ual_session(ual_user,ual_pwd,useragent=spoofUA)
+			config = configure()
+			S = ual_session(config.ual_user,config.ual_pwd,useragent=config.spoofUA)
 		result = S.basic_search(params)
 		if params.nonstop:
 			result = [t for t in result if len(t)==1]

@@ -30,20 +30,29 @@ bucket_regex = re.compile(', '.join(['[A-Z][0-9]']*10))
 aircraft_types = ['Boeing','Airbus','Canadair','Embraer','Avro']
 airline_codes = ['UA','LH']
 
-ual_user = 'NP904725'
-ual_pwd = '4321'
-spoofUA = 'Mozilla/5.0 (Windows NT 6.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.66 Safari/537.36'
-
-alert_recipient = 'dfreeman@cs.stanford.edu'
-alert_sender = 'superflyer02@gmail.com'
-gmail_user = 'superflyer02'
-gmail_pwd = 'enderwiggin1234'
-
 stdout = codecs.getwriter('utf-8')(sys.stdout)
 stderr = codecs.getwriter('utf-8')(sys.stderr)
 
 #set time zone
 os.environ['TZ'] = 'US/Pacific'
+
+def configure(config_file='ual.config'):
+	"""import user-configured parameters
+	the config file needs to have the following variables, in format <var>:<value>
+		ual_user = MileagePlus Number
+		ual_pwd = MileagePlus PIN or Password
+		spoofUA = Useragent to send requests with
+		alert_recipient = recipient of alert emails
+		gmail_user = username of gmail account sending alerts
+		gmail_pwd = password of gmail account sending alerts
+	"""
+	F = open(config_file)
+	config = {}
+	for line in F:
+		p = line.strip().split(':')
+		config[p[0]] = p[1]
+	F.close()
+	return config
 
 def get_airport(tdtime):
 	tddate = tdtime.parent.findNextSibling('div')
@@ -90,14 +99,14 @@ def long_search_def(start_date,end_date,depart_airport,arrive_airport,buckets=''
 	return 1
 
 
-def send_email(subject,message,recipient=alert_recipient):
+def send_email(subject,message,config):
 	msg = MIMEText(message)
-	msg['From'] = alert_sender
-	msg["To"] = alert_recipient
+	msg['From'] = config['alert_sender']
+	msg["To"] = config['alert_recipient']
 	msg["Subject"] = subject
 	s = smtplib.SMTP_SSL('smtp.gmail.com',465)
-	s.login(gmail_user,gmail_pwd)
-	s.sendmail(alert_sender, [alert_recipient], msg.as_string())
+	s.login(config['gmail_user'],config['gmail_pwd'])
+	s.sendmail(config['alert_sender'], [config['alert_recipient']], msg.as_string())
 	return 1
 
 
@@ -176,7 +185,7 @@ class Segment(object):
 	def send_alert_email(self,alert_def):
 		subject = 'Availability found for alert '+str(alert_def)
 		message = 'Query: '+str(alert_def)+'\nResults: '+self.condensed_repr()
-		e = send_email(subject,message)
+		e = send_email(subject,message,config)
 		return e
 
 
@@ -330,15 +339,15 @@ def extract_data(input_html):
 	return alltrips
 
 
-def run_alerts(ses=None,filename='alerts/alert_defs.txt',aggregate=False):
+def run_alerts(config,ses=None,filename='alerts/alert_defs.txt',aggregate=False):
 	# open Session
 	if not ses:
 		try:
-			ses = ual_session(ual_user,ual_pwd,useragent=spoofUA)
+			ses = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
 		except Exception as e:
 			subject = e.args[0]
-			message = 'User: '+ual_user
-			send_email(subject,message)
+			message = 'User: '+config['ual_user']
+			send_email(subject,message,config)
 			raise
 	# read alert defs
 	F = open(filename,'r')
@@ -379,7 +388,7 @@ def run_alerts(ses=None,filename='alerts/alert_defs.txt',aggregate=False):
 				subject = e.args[0]
 				message = 'Query: '+str(a)
 				stderr.write(subject+'\n'+message+'\n')
-				send_email(subject,message)
+				send_email(subject,message,config)
 			continue
 		for seg in segs:
 			print(seg.condensed_repr())
@@ -392,11 +401,11 @@ def run_alerts(ses=None,filename='alerts/alert_defs.txt',aggregate=False):
 			subject = 'SuperFlyer search results found'
 #			message = '\n'.join(sorted([seg.condensed_repr() for seg in results]))
 			message = '\n'.join([seg.condensed_repr() for seg in sorted(results, key=lambda x: x.depart_datetime)])
-			e = send_email(subject,message)
+			e = send_email(subject,message,config)
 		if errors:
 			subject_err = 'Errors in SuperFlyer search'
 			message_err = '\n'.join([str(a)+': '+str(e) for a,e in errors])
-			e1 = send_email(subject_err,message_err)
+			e1 = send_email(subject_err,message_err,config)
 	return(ses)
 
 
@@ -406,7 +415,8 @@ def run_alerts(ses=None,filename='alerts/alert_defs.txt',aggregate=False):
 
 def test():
 	from itertools import chain
-	S = ual_session(ual_user,ual_pwd,useragent=spoofUA)
+	config = configure()
+	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
 	P = alert_params('10/30/14','MSP','SFO',None,'X1')
 	X = S.basic_search(P)
 	return(S,list(chain.from_iterable(X)))
@@ -418,17 +428,19 @@ def scratch():
 	print(x.condensed_repr())
 
 def ual():
-	S = ual_session(ual_user,ual_pwd,useragent=spoofUA)
+	config = configure()
+	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
 	return S
 
 if __name__=='__main__':
+	config = configure()
 	if len(sys.argv) > 1:
 		if len(sys.argv) > 2 and sys.argv[2]=='-a':
-			S = run_alerts(ses=None,filename=sys.argv[1],aggregate=True)
+			S = run_alerts(config,ses=None,filename=sys.argv[1],aggregate=True)
 		else:
-			S = run_alerts(ses=None,filename=sys.argv[1])
+			S = run_alerts(config,ses=None,filename=sys.argv[1])
 	else:
-		S = run_alerts()
+		S = run_alerts(config)
 
 
 
