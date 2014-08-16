@@ -63,7 +63,9 @@ def format_airport(airport):
 	return airport_pattern.match(airport).group(1)
 
 def format_aircraft(aircraft):
-	if aircraft[:6] == 'Boeing':
+	if not aircraft:
+		return ''
+	elif aircraft[:6] == 'Boeing':
 		boeing = re.match('Boeing (7[0-9])[0-9]-([0-9]).*',aircraft)
 		if boeing:
 			return boeing.group(1)+boeing.group(2)
@@ -285,7 +287,10 @@ class ual_session(requests.Session):
 			for seg in trip:
 				if params.buckets:
 					seg.search_buckets(params.buckets)
-				print(seg.condensed_repr())
+				try:
+					print(seg.condensed_repr())
+				except:
+					print(seg)
 			print('---')
 		return data
 
