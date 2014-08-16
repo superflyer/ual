@@ -1,3 +1,3 @@
-28	*/4	*	*	*	ual/src/ual.py ual/alerts/alert_defs.txt 1>> ual/logs/ual_search.log 2>> ual/logs/ual_search.err
-54	0,12	*	*	*	ual/src/ual.py ual/alerts/agg_alert_defs.txt -a 1>> ual/logs/ual_long_search.log 2>> ual/logs/ual_long_search.err
+56	*/4	*	*	*	ual/src/ual.py ual/alerts/alert_defs.txt 1>> ual/logs/ual_search.log 2>> ual/logs/ual_search.err
+44	8,20	*	*	*	ual/src/ual.py ual/alerts/agg_alert_defs.txt -a 1>> ual/logs/ual_long_search.log 2>> ual/logs/ual_long_search.err
 
