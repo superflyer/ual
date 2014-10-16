@@ -45,6 +45,7 @@ def configure(config_file='ual.config'):
 		alert_recipient = recipient of alert emails
 		gmail_user = username of gmail account sending alerts
 		gmail_pwd = password of gmail account sending alerts
+		text_alerts = email address that receives text messages
 	"""
 	F = open(config_file)
 	config = {}
@@ -434,8 +435,11 @@ def ual():
 
 if __name__=='__main__':
 	config = configure()
+	if len(sys.argv) > 2 and sys.argv[2]=='-t':
+		config['alert_recipient'] = config['text_alerts']
 	if len(sys.argv) > 1:
 		if len(sys.argv) > 2 and sys.argv[2]=='-a':
+			# run aggregate alerts
 			S = run_alerts(config,ses=None,filename=sys.argv[1],aggregate=True)
 		else:
 			S = run_alerts(config,ses=None,filename=sys.argv[1])
