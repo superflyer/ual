@@ -45,7 +45,7 @@ def configure(config_file='ual.config'):
 		alert_recipient = recipient of alert emails
 		gmail_user = username of gmail account sending alerts
 		gmail_pwd = password of gmail account sending alerts
-		text_alerts = email address that receives text messages
+		sms_alerts = email address that receives text messages
 	"""
 	F = open(config_file)
 	config = {}
@@ -64,12 +64,12 @@ def format_airport(airport):
 	return airport_pattern.match(airport).group(1)
 
 def format_aircraft(aircraft):
-	if aircraft[:6] == 'Boeing':
+	if not aircraft:
+		return ''
+	elif aircraft[:6] == 'Boeing':
 		boeing = re.match('Boeing (7[0-9])[0-9]-([0-9]).*',aircraft)
 		if boeing:
 			return boeing.group(1)+boeing.group(2)
-		else:
-			return aircraft
 	elif aircraft[:6] == 'Airbus':
 		airbus = re.match('Airbus A([0-9]{2})([0-9])(-([0-9])00)?.*',aircraft)
 		if airbus:
@@ -77,16 +77,15 @@ def format_aircraft(aircraft):
 				return airbus.group(1)+airbus.group(4)
 			else:
 				return airbus.group(1)+airbus.group(2)
-		else:
-			return aircraft
 	elif aircraft[:8] == 'Canadair':
 		canadair = re.match('Canadair Regional Jet ([0-9])00.*',aircraft)
 		if canadair:
 			return 'CR'+canadair.group(1)
-		else:
-			return aircraft
-	else:
-		return aircraft
+	elif aircraft[:7] == 'Embraer':
+		embraer = re.match('Embraer ERJ-1([0-9]{2})',aircraft)
+		if embraer:
+			return 'E'+embraer.group(1)
+	return aircraft
 
 def long_search_def(start_date,end_date,depart_airport,arrive_airport,buckets='',flightno='',filename='alerts/long_search_defs.txt'):
 	alert_defs = []
@@ -184,7 +183,7 @@ class Segment(object):
 		self.search_results = results
 
 	def send_alert_email(self,alert_def):
-		subject = 'Availability found for alert '+str(alert_def)
+		subject = 'Results for '+str(alert_def)
 		message = 'Query: '+str(alert_def)+'\nResults: '+self.condensed_repr()
 		e = send_email(subject,message,config)
 		return e
@@ -286,7 +285,10 @@ class ual_session(requests.Session):
 			for seg in trip:
 				if params.buckets:
 					seg.search_buckets(params.buckets)
-				print(seg.condensed_repr())
+				try:
+					print(seg.condensed_repr())
+				except:
+					print(seg)
 			print('---')
 		return data
 
@@ -389,7 +391,9 @@ def run_alerts(config,ses=None,filename='alerts/alert_defs.txt',aggregate=False)
 				subject = e.args[0]
 				message = 'Query: '+str(a)
 				stderr.write(subject+'\n'+message+'\n')
-				send_email(subject,message,config)
+				if config['alert_recipient'] != config['sms_alerts']:
+					# don't send error messates via sms
+					send_email(subject,message,config)
 			continue
 		for seg in segs:
 			print(seg.condensed_repr())
@@ -434,12 +438,19 @@ def ual():
 	return S
 
 if __name__=='__main__':
+	'''Totally hacky way of argument parsing:
+		argument -a -> use aggregate alerts
+		argument -t -> use text alerts
+		if using -a, pass -e and email address to email someone else
+		arguments must be in this order.
+	'''
 	config = configure()
 	if len(sys.argv) > 2 and sys.argv[2]=='-t':
-		config['alert_recipient'] = config['text_alerts']
+		config['alert_recipient'] = config['sms_alerts']
 	if len(sys.argv) > 1:
 		if len(sys.argv) > 2 and sys.argv[2]=='-a':
-			# run aggregate alerts
+			if len(sys.argv) > 4 and sys.argv[3] == '-e':
+				config['alert_recipient'] = sys.argv[4]
 			S = run_alerts(config,ses=None,filename=sys.argv[1],aggregate=True)
 		else:
 			S = run_alerts(config,ses=None,filename=sys.argv[1])
