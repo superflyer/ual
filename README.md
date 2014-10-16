@@ -15,7 +15,7 @@ Setup
 4. Enter your alerts in alerts/alert_defs.txt.
 5. Enter your aggregate alerts in alerts/agg_alert_defs.txt (to search the same route over a range of days).
 6. Run
-    python ual.py <alert_def_file> [-a]
+<code>    python ual.py alert_def_file [-a] </code>
    (-a option is for aggregate alerts).
 
 Notes
