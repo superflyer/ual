@@ -460,7 +460,7 @@ if __name__=='__main__':
 	argparser.add_argument("-a", action="store_true", help="search on date range and aggregate results")
 	argparser.add_argument("-o", metavar="output_file", type=str, help="filename to store results")
 	argparser.add_argument('alert_file', type=str, help='file containing alert definitions')	# metavar='file',
-	argparser.add_argument('-c', metavar="config_file", type=str, help="filename containing configuration parameters")
+	argparser.add_argument('-c', metavar="config_file", default="ual.config", type=str, help="filename containing configuration parameters (default: ual.config)")
 	argparser.add_argument('-s', metavar="email_subject", type=str, help="subject to be sent in emails")
 
 	recipient = argparser.add_mutually_exclusive_group()
