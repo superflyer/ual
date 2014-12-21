@@ -382,9 +382,8 @@ def run_alerts(config,ses=None,filename='alerts/alert_defs.txt',aggregate=False)
 				alert_defs.append(b)
 				cur_datetime += timedelta(1)
 		except:
-			raise
-#			stderr.write('Error parsing alert definition: '+line)
-#			continue
+			stderr.write('Error parsing alert definition: '+line)
+			continue
 	F.close()
 
 	print datetime.today().strftime('%c')
