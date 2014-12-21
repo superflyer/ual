@@ -7,6 +7,7 @@ import codecs
 import sys
 import smtplib
 import os
+import argparse
 from copy import deepcopy
 from datetime import *
 from dateutil import parser
@@ -100,13 +101,19 @@ def long_search_def(start_date,end_date,depart_airport,arrive_airport,buckets=''
 
 
 def send_email(subject,message,config):
-	msg = MIMEText(message)
-	msg['From'] = config['alert_sender']
-	msg["To"] = config['alert_recipient']
-	msg["Subject"] = subject
-	s = smtplib.SMTP_SSL('smtp.gmail.com',465)
-	s.login(config['gmail_user'],config['gmail_pwd'])
-	s.sendmail(config['alert_sender'], [config['alert_recipient']], msg.as_string())
+	if config['output_file']:
+		F = open(config['output_file'],'a')
+		F.write(message)
+		F.write('\n')
+		F.close()
+	else:
+		msg = MIMEText(message)
+		msg['From'] = config['alert_sender']
+		msg["To"] = config['alert_recipient']
+		msg["Subject"] = subject
+		s = smtplib.SMTP_SSL('smtp.gmail.com',465)
+		s.login(config['gmail_user'],config['gmail_pwd'])
+		s.sendmail(config['alert_sender'], [config['alert_recipient']], msg.as_string())
 	return 1
 
 
@@ -183,7 +190,7 @@ class Segment(object):
 		self.search_results = results
 
 	def send_alert_email(self,alert_def):
-		subject = 'Results for '+str(alert_def)
+		subject = config['email_subject'] if config['email_subject'] else 'Results for '+str(alert_def)
 		message = 'Query: '+str(alert_def)+'\nResults: '+self.condensed_repr()
 		e = send_email(subject,message,config)
 		return e
@@ -248,7 +255,7 @@ class ual_session(requests.Session):
 				self.user = user
 			self.last_login_time = datetime.now()
 
-	def search(self,params,logging=True):
+	def search(self,params,logging=False):
 		search_params = set_search_params(self.cookies['SID'])
 		search_params['ctl00$ContentInfo$Booking1$Origin$txtOrigin']=params.depart_airport
 		search_params['ctl00$ContentInfo$Booking1$Destination$txtDestination']=params.arrive_airport
@@ -343,6 +350,8 @@ def extract_data(input_html):
 
 
 def run_alerts(config,ses=None,filename='alerts/alert_defs.txt',aggregate=False):
+	"""If no output file specified then send email to address specified in config.
+	"""
 	# open Session
 	if not ses:
 		try:
@@ -358,7 +367,7 @@ def run_alerts(config,ses=None,filename='alerts/alert_defs.txt',aggregate=False)
 	for line in F:
 		try:
 			data = line.strip().split('\t')
-			if data[0][0]=='#' or len(data) < 3: continue
+			if len(data) < 3 or data[0][0]=='#': continue
 			if aggregate:
 				end_date = data.pop(1)
 			else:
@@ -373,8 +382,9 @@ def run_alerts(config,ses=None,filename='alerts/alert_defs.txt',aggregate=False)
 				alert_defs.append(b)
 				cur_datetime += timedelta(1)
 		except:
-			stderr.write('Error parsing alert definition: '+line)
-			continue
+			raise
+#			stderr.write('Error parsing alert definition: '+line)
+#			continue
 	F.close()
 
 	print datetime.today().strftime('%c')
@@ -403,7 +413,7 @@ def run_alerts(config,ses=None,filename='alerts/alert_defs.txt',aggregate=False)
 					seg.send_alert_email(a)
 	if aggregate:
 		if results:
-			subject = 'SuperFlyer search results found'
+			subject = config['email_subject'] if config['email_subject'] else 'SuperFlyer search results found'
 #			message = '\n'.join(sorted([seg.condensed_repr() for seg in results]))
 			message = '\n'.join([seg.condensed_repr() for seg in sorted(results, key=lambda x: x.depart_datetime)])
 			e = send_email(subject,message,config)
@@ -411,6 +421,7 @@ def run_alerts(config,ses=None,filename='alerts/alert_defs.txt',aggregate=False)
 			subject_err = 'Errors in SuperFlyer search'
 			message_err = '\n'.join([str(a)+': '+str(e) for a,e in errors])
 			e1 = send_email(subject_err,message_err,config)
+
 	return(ses)
 
 
@@ -444,16 +455,47 @@ if __name__=='__main__':
 		if using -a, pass -e and email address to email someone else
 		arguments must be in this order.
 	'''
-	config = configure()
-	if len(sys.argv) > 2 and sys.argv[2]=='-t':
+
+	argparser = argparse.ArgumentParser(description='Search united.com for flight availability.')
+	argparser.add_argument("-a", action="store_true", help="search on date range and aggregate results")
+	argparser.add_argument("-o", metavar="output_file", type=str, help="filename to store results")
+	argparser.add_argument('alert_file', type=str, help='file containing alert definitions')	# metavar='file',
+	argparser.add_argument('-c', metavar="config_file", type=str, help="filename containing configuration parameters")
+	argparser.add_argument('-s', metavar="email_subject", type=str, help="subject to be sent in emails")
+
+	recipient = argparser.add_mutually_exclusive_group()
+	recipient.add_argument("-t", action="store_true", help="send text message instead of email")
+	recipient.add_argument("-e", metavar="email_address", type=str, help="email address to send results to")
+
+	args = argparser.parse_args()
+
+
+	config = configure(args.c)
+
+	# configure to send text mesages
+	if args.t:
 		config['alert_recipient'] = config['sms_alerts']
-	if len(sys.argv) > 1:
-		if len(sys.argv) > 2 and sys.argv[2]=='-a':
-			if len(sys.argv) > 4 and sys.argv[3] == '-e':
-				config['alert_recipient'] = sys.argv[4]
-			S = run_alerts(config,ses=None,filename=sys.argv[1],aggregate=True)
+	
+	# configure custom email address
+	if args.e:
+		config['alert_recipient'] = args.e
+
+	# configure output file
+	if args.o:
+		config['output_file'] = args.o
+	else:
+		config['output_file'] = None
+
+	# configure email subject
+	if args.s:
+		config['email_subject'] = args.s
+	else:
+		config['email_subject'] = None
+	if args.alert_file:
+		if args.a:
+			S = run_alerts(config,ses=None,filename=args.alert_file,aggregate=True)
 		else:
-			S = run_alerts(config,ses=None,filename=sys.argv[1])
+			S = run_alerts(config,ses=None,filename=args.alert_file)
 	else:
 		S = run_alerts(config)
 
