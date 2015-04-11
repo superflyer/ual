@@ -246,7 +246,7 @@ class ual_session(requests.Session):
 			login_params['ctl00$ContentInfo$accountsummary$OpPin1$txtOPPin'] = pwd
 			signin = self.post('https://www.united.com/web/en-US/default.aspx',data=login_params,allow_redirects=True)
 			if logging:
-				F = codecs.open('logs/signin.html','w','utf-8')
+				F = codecs.open('signin.html','w','utf-8')
 				F.write(signin.text)
 				F.close()
 			if 'The sign-in information you entered does not match an account in our records.' in signin.text or user not in signin.text:
@@ -382,9 +382,8 @@ def run_alerts(config,ses=None,filename='alerts/alert_defs.txt',aggregate=False)
 				alert_defs.append(b)
 				cur_datetime += timedelta(1)
 		except:
-			raise
-#			stderr.write('Error parsing alert definition: '+line)
-#			continue
+			stderr.write('Error parsing alert definition: '+line)
+			continue
 	F.close()
 
 	print datetime.today().strftime('%c')
@@ -426,9 +425,6 @@ def run_alerts(config,ses=None,filename='alerts/alert_defs.txt',aggregate=False)
 
 
 
-
-#S,D = basic_search('9/20/14','sfo','fra',min_avail+award_buckets)
-
 def test():
 	from itertools import chain
 	config = configure()
@@ -443,18 +439,13 @@ def scratch():
 	x.search_buckets('JIRYX')
 	print(x.condensed_repr())
 
-def ual():
-	config = configure()
-	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
+def ual(logging=False):
+	"""quickly load a session for debugging purposes"""
+	config = configure('../ual.config')
+	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],logging=logging)
 	return S
 
 if __name__=='__main__':
-	'''Totally hacky way of argument parsing:
-		argument -a -> use aggregate alerts
-		argument -t -> use text alerts
-		if using -a, pass -e and email address to email someone else
-		arguments must be in this order.
-	'''
 
 	argparser = argparse.ArgumentParser(description='Search united.com for flight availability.')
 	argparser.add_argument("-a", action="store_true", help="search on date range and aggregate results")
