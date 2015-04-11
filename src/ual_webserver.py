@@ -8,15 +8,9 @@ from datetime import *
 from dateutil import parser
 from re import search
 import sys
+import argparse
 
 from ual import *
-
-# global variable to hold session
-if len(sys.argv) > 1 and sys.argv[1] == '-t':
-	pass
-else:
-	config = configure()
-	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
 
 app = Bottle()
 
@@ -83,7 +77,7 @@ def query_submit():
 	flightno = airline + flightno
 
 	params = alert_params(depart_date,depart_airport,arrive_airport,flightno,buckets,nonstop=nonstop)
-	if len(sys.argv) > 1 and sys.argv[1] == '-t':
+	if args.t:
 		F = open('ual_test/international.html')
 		raw_data = F.read()
 		F.close()
@@ -110,5 +104,19 @@ def query_submit():
 	return template("templates/results", params=params, data=result)
 
 if __name__=='__main__':
-	#run(app, host='localhost', port=8080, reloader=True)
-	run(app, host='0.0.0.0', port=8080)
+
+	argparser = argparse.ArgumentParser(description='Web app to search united.com for flight availability.')
+	argparser.add_argument("-l", action="store_true", help="run on localhost")
+	argparser.add_argument("-t", action="store_true", help="run in testing mode")
+
+	args = argparser.parse_args()
+
+	# global variable to hold session
+	if not args.t:
+		config = configure()
+		S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
+
+	if args.l:
+		run(app, host='localhost', port=8080, reloader=True)
+	else:
+		run(app, host='0.0.0.0', port=8080)

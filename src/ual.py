@@ -28,8 +28,8 @@ award_buckets = 'OIRX'
 #bucket_regex = re.compile(', '.join([c+'[0-9]' for c in Yclasses]))
 bucket_regex = re.compile(', '.join(['[A-Z][0-9]']*10))
 
-aircraft_types = ['Boeing','Airbus','Canadair','Embraer','Avro']
-airline_codes = ['UA','LH']
+aircraft_types = ['Boeing','Airbus','Canadair','Embraer','Avro','ATR']
+airline_codes = ['UA','LH','WP','LX','NH','AC','HA']
 
 stdout = codecs.getwriter('utf-8')(sys.stdout)
 stderr = codecs.getwriter('utf-8')(sys.stderr)
@@ -427,9 +427,9 @@ def run_alerts(config,ses=None,filename='alerts/alert_defs.txt',aggregate=False)
 
 def test():
 	from itertools import chain
-	config = configure()
+	config = configure('../ual.config')
 	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
-	P = alert_params('10/30/14','MSP','SFO',None,'X1')
+	P = alert_params('11/14/15','OGG','SFO',None,None)
 	X = S.basic_search(P)
 	return(S,list(chain.from_iterable(X)))
 

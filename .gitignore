@@ -1,4 +1,5 @@
 search.html
 *.pyc
 .DS_Store
-
+mr/*search*.txt
+mr/*results*.txt
