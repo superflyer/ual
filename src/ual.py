@@ -405,7 +405,11 @@ def run_alerts(config,ses=None,filename='alerts/alert_defs.txt',aggregate=False)
 					send_email(subject,message,config)
 			continue
 		for seg in segs:
-			print(seg.condensed_repr())
+			try:
+				print(seg.condensed_repr())
+			except:
+				stderr.write('Error getting string representation of segment.\n')
+				continue
 			if sum(seg.search_results.values()) > 0:
 				results.append(seg)
 				if not aggregate:

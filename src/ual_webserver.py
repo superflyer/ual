@@ -90,7 +90,7 @@ def query_submit():
 					seg.search_buckets(params.buckets)
 	else:
 		if S.last_login_time < datetime.now() - timedelta(minutes=30):
-			config = configure()
+			config = configure(sys.argv[1])
 			S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
 		result = S.basic_search(params)
 		if params.nonstop:
@@ -113,7 +113,7 @@ if __name__=='__main__':
 
 	# global variable to hold session
 	if not args.t:
-		config = configure()
+		config = configure(sys.argv[1])
 		S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
 
 	if args.l:
