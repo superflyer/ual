@@ -1,3 +1,0 @@
-#start_date	end_date	dep	arr	flightno	buckets
-1/1/15	11/11/15	NRT	SIN		R
-

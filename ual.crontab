@@ -3,4 +3,5 @@
 23	*	*	*	*	ual/src/ual.py -t ual/alerts/text_alerts.txt 1>> ual/logs/ual_text_search.log 2>> ual/logs/ual_text_search.err
 */4	*	6-7	11	*	ual/src/ual.py -t ual/alerts/fast_alerts.txt 1>> ual/logs/ual_fast_search.log 2>> ual/logs/ual_fast_search.err
 36	*/2	*	*	*	ual/src/ual.py -e 6507961064@txt.att.net ual/alerts/nan_alerts.txt 1>> ual/logs/nan_search.log 2>> ual/logs/nan_search.err
-44	7,19	*	*	*	cd ual/alerts/mr; ./mr-search.sh
+4	7,19	*	*	*	cd ual/alerts/mr; ./mr-search.sh 1>> ../../logs/mr_search.log 2>> ../../logs/mr_search.err
+26	12	*	*	*	cd ual/alerts/mr; ./mr-search.sh 1>> ../../logs/mr_search.log 2>> ../../logs/mr_search.err
