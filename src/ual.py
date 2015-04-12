@@ -319,8 +319,8 @@ class ual_session(requests.Session):
 
 
 def extract_data(input_html):
-	soup = bs4.BeautifulSoup(input_html)
-#	soup = bs4.BeautifulSoup(input_html,'lxml')
+#	soup = bs4.BeautifulSoup(input_html)
+	soup = bs4.BeautifulSoup(input_html,'lxml')
 
 	trips = soup.findAll(attrs={"class": "tdSegmentBlock"})
 
@@ -434,8 +434,11 @@ def test():
 	config = configure('../ual.config')
 	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
 	P = alert_params('11/14/15','OGG','SFO',None,None)
-	X = S.basic_search(P)
-	return(S,list(chain.from_iterable(X)))
+	results = S.search(P)
+	data = extract_data(results)
+	return(data)
+	#X = S.basic_search(P)
+	#return S,list(chain.from_iterable(X)))
 
 def scratch():
 	x = X[0][0]
@@ -452,15 +455,19 @@ def ual(logging=False):
 if __name__=='__main__':
 
 	argparser = argparse.ArgumentParser(description='Search united.com for flight availability.')
+
+	# optional arguments
 	argparser.add_argument("-a", action="store_true", help="search on date range and aggregate results")
 	argparser.add_argument("-o", metavar="output_file", type=str, help="filename to store results")
-	argparser.add_argument('alert_file', type=str, help='file containing alert definitions')	# metavar='file',
-	argparser.add_argument('-c', metavar="config_file", default="ual.config", type=str, help="filename containing configuration parameters (default: ual.config)")
 	argparser.add_argument('-s', metavar="email_subject", type=str, help="subject to be sent in emails")
 
 	recipient = argparser.add_mutually_exclusive_group()
 	recipient.add_argument("-t", action="store_true", help="send text message instead of email")
 	recipient.add_argument("-e", metavar="email_address", type=str, help="email address to send results to")
+
+	#positional arguments
+	argparser.add_argument('-c', metavar="config_file", default="ual.config", type=str, help="filename containing configuration parameters (default: ual.config)")
+	argparser.add_argument('alert_file', nargs='?', type=str, help='file containing alert definitions')	# metavar='file',
 
 	args = argparser.parse_args()
 

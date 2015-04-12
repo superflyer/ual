@@ -90,7 +90,7 @@ def query_submit():
 					seg.search_buckets(params.buckets)
 	else:
 		if S.last_login_time < datetime.now() - timedelta(minutes=30):
-			config = configure(sys.argv[1])
+			config = configure(args.c)
 			S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
 		result = S.basic_search(params)
 		if params.nonstop:
@@ -108,12 +108,13 @@ if __name__=='__main__':
 	argparser = argparse.ArgumentParser(description='Web app to search united.com for flight availability.')
 	argparser.add_argument("-l", action="store_true", help="run on localhost")
 	argparser.add_argument("-t", action="store_true", help="run in testing mode")
+	argparser.add_argument('-c', metavar="config_file", default="ual.config", type=str, help="filename containing configuration parameters (default: ual.config)")
 
 	args = argparser.parse_args()
 
 	# global variable to hold session
 	if not args.t:
-		config = configure(sys.argv[1])
+		config = configure(args.c)
 		S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
 
 	if args.l:
