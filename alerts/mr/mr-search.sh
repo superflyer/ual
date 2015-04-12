@@ -2,7 +2,7 @@ ual=~/ual
 
 #NRT-SIN
 rm nrt-sin-*1.txt
-paste <(date | $ual/src/date-add.py 3) <(date | $ual/src/date-add.py 329) <(echo 'NRT	SIN		R') > nrt-sin-search1.txt
+paste <(date | $ual/src/date-add.py 3) <(echo '12/31/15') <(echo 'NRT	SIN		R') > nrt-sin-search1.txt
 $ual/src/ual.py -c ~/ual.config -a -o nrt-sin-results1.txt nrt-sin-search1.txt 
 
 #HKG-SFO the next day
