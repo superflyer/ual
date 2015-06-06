@@ -77,7 +77,8 @@ def query_submit():
 	flightno = airline + flightno
 
 	params = alert_params(depart_date,depart_airport,arrive_airport,flightno,buckets,nonstop=nonstop)
-	if args.t:
+	if args.t: 
+		# testing mode
 		F = open('ual_test/international.html')
 		raw_data = F.read()
 		F.close()
@@ -95,13 +96,14 @@ def query_submit():
 		result = S.basic_search(params)
 		if params.nonstop:
 			result = [t for t in result if len(t)==1]
+		sorted_result = sorted(result, key=lambda x: (len(x), x[0].depart_datetime))
 
 		
 	#logging
 	sys.stdout.write(strftime("%Y-%m-%d %H:%M:%S", localtime())+'\n')
 	sys.stdout.flush()
 	
-	return template("templates/results", params=params, data=result)
+	return template("templates/results", params=params, data=sorted_result)
 
 if __name__=='__main__':
 

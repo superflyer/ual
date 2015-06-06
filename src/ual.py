@@ -417,7 +417,6 @@ def run_alerts(config,ses=None,filename='alerts/alert_defs.txt',aggregate=False)
 	if aggregate:
 		if results:
 			subject = config['email_subject'] if config['email_subject'] else 'SuperFlyer search results found'
-#			message = '\n'.join(sorted([seg.condensed_repr() for seg in results]))
 			message = '\n'.join([seg.condensed_repr() for seg in sorted(results, key=lambda x: x.depart_datetime)])
 			e = send_email(subject,message,config)
 		if errors:
