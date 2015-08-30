@@ -51,8 +51,12 @@ def configure(config_file='ual.config'):
 	F = open(config_file)
 	config = {}
 	for line in F:
-		p = line.strip().split(':')
-		config[p[0]] = p[1]
+		try:
+			p = line.strip().split(':')
+			config[p[0]] = p[1]
+		except IndexError:
+			# ignore malformed lines
+			pass
 	F.close()
 	return config
 
@@ -233,7 +237,7 @@ class alert_params(object):
 
 class ual_session(requests.Session):
 
-	def __init__(self,user=None,pwd=None,logging=False,useragent=None):
+	def __init__(self,user=None,pwd=None,logging=False,useragent=None, retries=3):
 		requests.Session.__init__(self)
 		if useragent:
 			self.headers={'User-Agent':useragent}
@@ -241,19 +245,40 @@ class ual_session(requests.Session):
 			self.headers={}
 		home = self.get('https://www.united.com',allow_redirects=True,headers=self.headers)
 		if user:
+			failed = False
 			login_params = set_login_params(self.cookies['SID'])
 			login_params['ctl00$ContentInfo$accountsummary$OpNum1$txtOPNum'] = user
 			login_params['ctl00$ContentInfo$accountsummary$OpPin1$txtOPPin'] = pwd
-			signin = self.post('https://www.united.com/web/en-US/default.aspx',data=login_params,allow_redirects=True)
-			if logging:
-				F = codecs.open('signin.html','w','utf-8')
-				F.write(signin.text)
-				F.close()
-			if 'The sign-in information you entered does not match an account in our records.' in signin.text or user not in signin.text:
-				raise Exception('Login to united.com failed.')
-			else:
-				self.user = user
-			self.last_login_time = datetime.now()
+			for i in range(retries+1):
+				signin = self.post('https://www.united.com/web/en-US/default.aspx',data=login_params,allow_redirects=True)
+				if 'The sign-in information you entered does not match an account in our records.' in signin.text:
+					failed = True
+					err_msg = "Username or password mismatch."
+				elif user not in signin.text:
+					failed = True
+					err_msg = "Username not on landing page."
+				if logging or failed:
+					F = codecs.open('signin.html','w','utf-8')
+					F.write(signin.text)
+					F.close()
+				if not failed:
+					self.user = user
+					self.last_login_time = datetime.now()
+					break
+			if failed:
+				raise Exception(err_msg)
+
+	def upgrade(self,params,logging=False):
+		upgrade_page = self.get('http://www.united.com/web/en-US/apps/reservation/flight/upgrade/sauaawardUpgrade.aspx')
+		print upgrade_page.url
+		upgrade = self.post('https://www.united.com/web/en-US/apps/reservation/flight/upgrade/sauaawardUpgrade.aspx',data=params,allow_redirects=True,headers=self.headers)
+		print upgrade.url
+		if logging:
+			F = codecs.open('upgrade.html','w','utf-8')
+			F.write(upgrade.text)
+			F.close()
+		return upgrade.text
+
 
 	def search(self,params,logging=False):
 		search_params = set_search_params(self.cookies['SID'])

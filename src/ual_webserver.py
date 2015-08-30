@@ -111,6 +111,7 @@ if __name__=='__main__':
 	argparser.add_argument("-l", action="store_true", help="run on localhost")
 	argparser.add_argument("-t", action="store_true", help="run in testing mode")
 	argparser.add_argument('-c', metavar="config_file", default="ual.config", type=str, help="filename containing configuration parameters (default: ual.config)")
+	argparser.add_argument('-p', metavar="port", default="80", type=int, help="port on which to run web server (default: 80)")
 
 	args = argparser.parse_args()
 
@@ -120,6 +121,6 @@ if __name__=='__main__':
 		S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
 
 	if args.l:
-		run(app, host='localhost', port=8080, reloader=True)
+		run(app, host='localhost', port=args.p, reloader=True)
 	else:
-		run(app, host='0.0.0.0', port=8080)
+		run(app, host='0.0.0.0', port=args.p)
