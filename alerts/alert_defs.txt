@@ -1,4 +1,0 @@
-#date	dep	arr	flt	buckets
-5/22/16	SFO	AUS		X
-5/25/16	AUS	SFO		X
-3/11/16	LHR	EWR		IRX
