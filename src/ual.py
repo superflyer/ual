@@ -255,7 +255,7 @@ class ual_session(requests.Session):
 					failed = True
 					err_msg = "Username or password mismatch."
 				elif user not in signin.text:
-					failed = True
+					# failed = True
 					err_msg = "Username not on landing page."
 				if logging or failed:
 					F = codecs.open('signin.html','w','utf-8')
