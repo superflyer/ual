@@ -240,26 +240,30 @@ class ual_session(requests.Session):
 	def __init__(self,user=None,pwd=None,logging=False,useragent=None, retries=3):
 		requests.Session.__init__(self)
 		if useragent:
-			self.headers={'User-Agent':useragent}
-		else:
-			self.headers={}
-		home = self.get('https://www.united.com',allow_redirects=True,headers=self.headers)
+			self.headers.update({'User-Agent':useragent})
+		if logging:
+			print("Loading united.com home page")
+		self.home = self.get('https://www.united.com',allow_redirects=True,headers=self.headers)
 		if user:
 			failed = False
-			login_params = set_login_params(self.cookies['SID'])
-			login_params['ctl00$ContentInfo$accountsummary$OpNum1$txtOPNum'] = user
-			login_params['ctl00$ContentInfo$accountsummary$OpPin1$txtOPPin'] = pwd
+			login_params = {'IsHomePageTile':'True',
+							'RememberMe':'true',
+							'MpNumber':user,
+							'Password':pwd}
 			for i in range(retries+1):
-				signin = self.post('https://www.united.com/web/en-US/default.aspx',data=login_params,allow_redirects=True)
-				if 'The sign-in information you entered does not match an account in our records.' in signin.text:
+				if logging:
+					print("Logging in to united.com")
+				self.signin = self.post('https://www.united.com/ual/en/us/account/account/login',
+					data=login_params,allow_redirects=True)
+				if 'The sign-in information you entered does not match an account in our records.' in self.signin.text:
 					failed = True
 					err_msg = "Username or password mismatch."
-				elif user not in signin.text:
+				elif user not in self.signin.text:
 					# failed = True
 					err_msg = "Username not on landing page."
 				if logging or failed:
 					F = codecs.open('signin.html','w','utf-8')
-					F.write(signin.text)
+					F.write(self.signin.text)
 					F.close()
 				if not failed:
 					self.user = user
@@ -281,18 +285,45 @@ class ual_session(requests.Session):
 
 
 	def search(self,params,logging=False):
-		search_params = set_search_params(self.cookies['SID'])
-		search_params['ctl00$ContentInfo$Booking1$Origin$txtOrigin']=params.depart_airport
-		search_params['ctl00$ContentInfo$Booking1$Destination$txtDestination']=params.arrive_airport
-		search_params['ctl00$ContentInfo$Booking1$DepDateTime$Depdate$txtDptDate']=params.depart_date
+		search_params = new_search_params(params.depart_airport, params.arrive_airport, params.depart_date)
 		if params.nonstop:
-			search_params['ctl00$ContentInfo$Booking1$Direct$chkFltOpt']='on'
-		search = self.post('https://www.united.com/web/en-US/default.aspx',data=search_params,allow_redirects=True,headers=self.headers)
+			search_params['NonStopOnly']='true'
+
+		# load search page to get a cart ID
 		if logging:
-			F = codecs.open('search.html','w','utf-8')
-			F.write(search.text)
+			print("Loading search page")
+		self.search_page = self.post('https://www.united.com/ual/en/us/flight-search/book-a-flight',
+			data=search_params,allow_redirects=True,headers=self.headers)
+		if logging:
+			print("Received " + str(len(self.search_page.text)) + " characters")
+			F = codecs.open('search_page.html','w','utf-8')
+			F.write(self.search_page.text)
 			F.close()
-		return search.text
+
+		# extract cart ID from search page
+		soup = bs4.BeautifulSoup(self.search_page.text,'lxml')
+		cart_id_input = soup.findAll(attrs={"name":"CartId"})
+		cart_id = cart_id_input[0]['value']
+		print(cart_id)
+
+		# get search results
+		# this post is to a json endpoint, the params are returned json-encoded
+		search_params_full = new_search_params_full(params.depart_airport, params.arrive_airport, 
+													params.depart_datetime, cart_id, nonstop=params.nonstop)	
+		if logging:
+			print("Loading search results")
+		self.headers.update({'Content-Type':'application/json'})
+		self.search_results = self.post('https://www.united.com/ual/en/us/flight-search/book-a-flight/flightshopping/getflightresults/rev',
+			data=search_params_full,
+			allow_redirects=True,headers=self.headers)
+		if logging:
+			print("Received " + str(len(self.search_results.text)) + " characters")
+			F = codecs.open('search_results.html','w','utf-8')
+			F.write(self.search_results.text)
+			F.close()
+
+		# all of the data is in search_results in nice json form!
+		return self.search_results.text
 
 	def alert_search(self,params):
 		results = self.search(params)
@@ -344,9 +375,7 @@ class ual_session(requests.Session):
 
 
 def extract_data(input_html):
-#	soup = bs4.BeautifulSoup(input_html)
 	soup = bs4.BeautifulSoup(input_html,'lxml')
-
 	trips = soup.findAll(attrs={"class": "tdSegmentBlock"})
 
 	alltrips = []
@@ -454,13 +483,12 @@ def run_alerts(config,ses=None,filename='alerts/alert_defs.txt',aggregate=False)
 
 
 def test():
-	from itertools import chain
 	config = configure('../ual.config')
-	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
-	P = alert_params('11/14/15','OGG','SFO',None,None)
-	results = S.search(P)
-	data = extract_data(results)
-	return(data)
+	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],logging=True)
+	P = alert_params('11/14/15','OGG','SFO',nonstop=True)
+	results = S.search(P,logging=True)
+	return(S)
+	#data = extract_data(results)
 	#X = S.basic_search(P)
 	#return S,list(chain.from_iterable(X)))
 
