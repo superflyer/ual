@@ -1,36 +1,14 @@
 #!/usr/bin/env python
-
-import requests
-import bs4
-import re
+import os
 import codecs
 import sys
-import smtplib
-import os
 import argparse
-from copy import deepcopy
-from datetime import *
-from dateutil import parser
-from email.mime.text import MIMEText
-from subprocess import Popen, PIPE
-from ual_params import *
 
+from itertools import chain
 
-#constants
-airport_pattern = re.compile('.*\(([A-Z]{3}).*\).*')
-Fclasses = ['F','FN','A','ON','O']
-Jclasses = ['J','JN','C','D','Z','ZN','P','PN','R','RN','IN','I']
-Yclasses = ['Y','YN','B','M','E','U','H','HN','Q','V','W','S','T','L','K','G','N','XN','X']
-Nclasses = ['R','I','X']  # removing ON since this is C->F upgrade
-remapped_classes = {'1':'HN'}
-min_avail = 'FJY'
-award_buckets = 'OIRX'
-#bucket_regex = re.compile(', '.join([c+'[0-9]' for c in Yclasses]))
-bucket_regex = re.compile(', '.join(['[A-Z][0-9]']*10))
+from ual_session import *
 
-aircraft_types = ['Boeing','Airbus','Canadair','Embraer','Avro','ATR']
-airline_codes = ['UA','LH','WP','LX','NH','AC','HA']
-
+#redefine stdout/stderr to handle utf-8
 stdout = codecs.getwriter('utf-8')(sys.stdout)
 stderr = codecs.getwriter('utf-8')(sys.stderr)
 
@@ -60,356 +38,18 @@ def configure(config_file='ual.config'):
 	F.close()
 	return config
 
-def get_airport(tdtime):
-	tddate = tdtime.parent.findNextSibling('div')
-	tdairport = tddate.findNextSibling('div')
-	return tddate.text,tdairport.text
-
-def format_airport(airport):
-	return airport_pattern.match(airport).group(1)
-
-def format_aircraft(aircraft):
-	if not aircraft:
-		return ''
-	elif aircraft[:6] == 'Boeing':
-		boeing = re.match('Boeing (7[0-9])[0-9]-([0-9]).*',aircraft)
-		if boeing:
-			return boeing.group(1)+boeing.group(2)
-	elif aircraft[:6] == 'Airbus':
-		airbus = re.match('Airbus A([0-9]{2})([0-9])(-([0-9])00)?.*',aircraft)
-		if airbus:
-			if airbus.group(3):
-				return airbus.group(1)+airbus.group(4)
-			else:
-				return airbus.group(1)+airbus.group(2)
-	elif aircraft[:8] == 'Canadair':
-		canadair = re.match('Canadair Regional Jet ([0-9])00.*',aircraft)
-		if canadair:
-			return 'CR'+canadair.group(1)
-	elif aircraft[:7] == 'Embraer':
-		embraer = re.match('Embraer ERJ-1([0-9]{2})',aircraft)
-		if embraer:
-			return 'E'+embraer.group(1)
-	return aircraft
-
-def long_search_def(start_date,end_date,depart_airport,arrive_airport,buckets='',flightno='',filename='alerts/long_search_defs.txt'):
-	alert_defs = []
-	cur_datetime = parser.parse(start_date)
-	F = open(filename,'aw')
-	while cur_datetime <= parser.parse(end_date):
-		depart_date = cur_datetime.strftime('%m/%d/%y')
-		F.write('\t'.join([depart_date,depart_airport,arrive_airport,'',buckets])+'\n')
-		cur_datetime += timedelta(1)
-	F.close()
-	return 1
-
-
-def send_email(subject,message,config):
-	if config['output_file']:
-		F = open(config['output_file'],'a')
-		F.write(message)
-		F.write('\n')
-		F.close()
-	else:
-		msg = MIMEText(message)
-		msg['From'] = config['alert_sender']
-		msg["To"] = config['alert_recipient']
-		msg["Subject"] = subject
-		s = smtplib.SMTP_SSL('smtp.gmail.com',465)
-		s.login(config['gmail_user'],config['gmail_pwd'])
-		s.sendmail(config['alert_sender'], [config['alert_recipient']], msg.as_string())
-	return 1
-
-
-
-class Segment(object):
-	def __init__(self):
-		self.depart_airport = None
-		self.depart_time = None
-		self.depart_date = None
-		self.arrive_airport = None
-		self.arrive_time = None
-		self.arrive_date = None
-		self.aircraft = None
-		self.availability = 'NA'
-		self.flightno = None
-		self.search_results = None
-		self.search_query = None
-	def __repr__(self):
-		paramlist=[self.flightno,self.depart_date,self.depart_airport,self.depart_time,
-		self.arrive_airport,self.arrive_time,self.aircraft,self.availability.strip()]
-		return(' '.join(paramlist))
-	def __str__(self):
-		return self.__repr__()
-	def format_deptime(self):
-		self.depart_datetime = parser.parse(self.depart_date+' '+self.depart_time)
-#		return self.depart_datetime.strftime('%m/%d/%y %H:%M')
-	def format_arrtime(self):
-		self.arrive_datetime = parser.parse(self.arrive_date+' '+self.arrive_time)
-		if self.depart_date:
-			self.day_offset=''
-			if self.depart_datetime.day != self.arrive_datetime.day:
-				for offset in ['-1','+1','+2']:
-					if self.arrive_datetime.day == (self.depart_datetime+timedelta(days=int(offset))).day:
-						self.day_offset = offset
-	def format_depairport(self):
-		return format_airport(self.depart_airport)
-	def format_arrairport(self):
-		return format_airport(self.arrive_airport)
-	def bucket_repr(self):
-		if self.search_query:
-			return ' '.join([(remapped_classes[b] if b in remapped_classes else b)+str(self.search_results[b])+(str(self.search_results[b+'N']) if b in Nclasses else '') for b in self.search_query])
-		elif self.search_query=='':
-			return 'NA'
-		else:
-			return self.availability.strip()
-	def condensed_repr(self):
-		self.format_deptime()
-		self.format_arrtime()
-		output_params = [self.depart_datetime.strftime('%m/%d/%y').strip('0'),
-			self.flightno,
-			format_airport(self.depart_airport),
-			self.depart_datetime.strftime('%H:%M'),
-			format_airport(self.arrive_airport),
-			self.arrive_datetime.strftime('%H:%M')+self.day_offset,
-			format_aircraft(self.aircraft),
-			self.bucket_repr()]
-		return ' '.join(output_params)
-
-	def search_buckets(self,buckets):
-		results = {}
-		self.search_query = ''
-		for b in buckets.upper():
-			if b in remapped_classes:
-				inv = re.match('.*'+remapped_classes[b]+'([0-9]).*',self.availability)
-			else:
-				inv = re.match('.*'+b+'([0-9]).*',self.availability)
-			if inv:
-				results[b] = int(inv.group(1))
-				self.search_query += b
-			if b in Nclasses:
-				invN = re.match('.*'+b+'N([0-9]).*',self.availability)
-				if invN:
-					results[b+'N'] = int(invN.group(1))
-		self.search_results = results
-
-	def send_alert_email(self,alert_def):
-		subject = config['email_subject'] if config['email_subject'] else 'Results for '+str(alert_def)
-		message = 'Query: '+str(alert_def)+'\nResults: '+self.condensed_repr()
-		e = send_email(subject,message,config)
-		return e
-
-
-class alert_params(object):
-	def __init__(self,depart_date,depart_airport,arrive_airport,flightno=None,buckets=None,nonstop=False):
-		self.depart_airport=depart_airport.upper()
-		self.arrive_airport=arrive_airport.upper()
-		self.buckets=buckets.upper() if buckets else ''
-		self.flightno=flightno
-		# need to do some error-checking on dates
-		self.depart_datetime = parser.parse(depart_date)  # assume h:mm = 0:00
-		if self.depart_datetime + timedelta(days=1,minutes=-1) < datetime.today() :
-			raise Exception('Depart date is in the past.')
-		if self.depart_datetime > datetime.today() + timedelta(days=331):
-			raise Exception('Depart date is more than 331 days in the future.')
-		self.depart_date=depart_date
-		self.nonstop=nonstop
-	def __repr__(self):
-		return ' '.join([self.depart_date,
-			self.flightno if self.flightno else '',
-			self.depart_airport,
-			self.arrive_airport,
-			self.buckets if self.buckets else '',
-			'NS' if self.nonstop else ''])
-	def __str__(self):
-		return self.__repr__()
-	def copy(self):
-		return(deepcopy(self))
-	def other_buckets(self):
-		others = re.search('[^'+award_buckets+']+',self.buckets)
-		if others:
-			return others.group()
-		else:
-			return ''
-
-
-
-
-class ual_session(requests.Session):
-
-	def __init__(self,user=None,pwd=None,logging=False,useragent=None, retries=3):
-		requests.Session.__init__(self)
-		if useragent:
-			self.headers.update({'User-Agent':useragent})
-		if logging:
-			print("Loading united.com home page")
-		self.home = self.get('https://www.united.com',allow_redirects=True,headers=self.headers)
-		if user:
-			failed = False
-			login_params = {'IsHomePageTile':'True',
-							'RememberMe':'true',
-							'MpNumber':user,
-							'Password':pwd}
-			for i in range(retries+1):
-				if logging:
-					print("Logging in to united.com")
-				self.signin = self.post('https://www.united.com/ual/en/us/account/account/login',
-					data=login_params,allow_redirects=True)
-				if 'The sign-in information you entered does not match an account in our records.' in self.signin.text:
-					failed = True
-					err_msg = "Username or password mismatch."
-				elif user not in self.signin.text:
-					# failed = True
-					err_msg = "Username not on landing page."
-				if logging or failed:
-					F = codecs.open('signin.html','w','utf-8')
-					F.write(self.signin.text)
-					F.close()
-				if not failed:
-					self.user = user
-					self.last_login_time = datetime.now()
-					break
-			if failed:
-				raise Exception(err_msg)
-
-	def upgrade(self,params,logging=False):
-		upgrade_page = self.get('http://www.united.com/web/en-US/apps/reservation/flight/upgrade/sauaawardUpgrade.aspx')
-		print upgrade_page.url
-		upgrade = self.post('https://www.united.com/web/en-US/apps/reservation/flight/upgrade/sauaawardUpgrade.aspx',data=params,allow_redirects=True,headers=self.headers)
-		print upgrade.url
-		if logging:
-			F = codecs.open('upgrade.html','w','utf-8')
-			F.write(upgrade.text)
-			F.close()
-		return upgrade.text
-
-
-	def search(self,params,logging=False):
-		search_params = new_search_params(params.depart_airport, params.arrive_airport, params.depart_date)
-		if params.nonstop:
-			search_params['NonStopOnly']='true'
-
-		# load search page to get a cart ID
-		if logging:
-			print("Loading search page")
-		self.search_page = self.post('https://www.united.com/ual/en/us/flight-search/book-a-flight',
-			data=search_params,allow_redirects=True,headers=self.headers)
-		if logging:
-			print("Received " + str(len(self.search_page.text)) + " characters")
-			F = codecs.open('search_page.html','w','utf-8')
-			F.write(self.search_page.text)
-			F.close()
-
-		# extract cart ID from search page
-		soup = bs4.BeautifulSoup(self.search_page.text,'lxml')
-		cart_id_input = soup.findAll(attrs={"name":"CartId"})
-		cart_id = cart_id_input[0]['value']
-		print(cart_id)
-
-		# get search results
-		# this post is to a json endpoint, the params are returned json-encoded
-		search_params_full = new_search_params_full(params.depart_airport, params.arrive_airport, 
-													params.depart_datetime, cart_id, nonstop=params.nonstop)	
-		if logging:
-			print("Loading search results")
-		self.headers.update({'Content-Type':'application/json'})
-		self.search_results = self.post('https://www.united.com/ual/en/us/flight-search/book-a-flight/flightshopping/getflightresults/rev',
-			data=search_params_full,
-			allow_redirects=True,headers=self.headers)
-		if logging:
-			print("Received " + str(len(self.search_results.text)) + " characters")
-			F = codecs.open('search_results.html','w','utf-8')
-			F.write(self.search_results.text)
-			F.close()
-
-		# all of the data is in search_results in nice json form!
-		return self.search_results.text
-
-	def alert_search(self,params):
-		results = self.search(params)
-		trips = extract_data(results)
-		found_segs = []
-		for t in trips:
-			if params.nonstop and len(t) > 1:
-				continue
-			for seg in t:
-				seg.search_buckets(params.buckets)
-				if not params.flightno or seg.flightno in params.flightno:
-					found_segs.append(seg)
-		if len(found_segs)==0:
-			failed = self.search(params,logging=True)
-			raise Exception('No results found for '+str(params))
-		return found_segs
-
-	def basic_search(self,params):
-		results = self.search(params)
-		data = extract_data(results)
-		for trip in data:
-			for seg in trip:
-				if params.buckets:
-					seg.search_buckets(params.buckets)
-				try:
-					print(seg.condensed_repr())
-				except:
-					print(seg)
-			print('---')
-		return data
-
-	def long_search(self,start_date,end_date,depart_airport,arrive_airport,buckets=None,flightno=None):
-		found_segs = []
-		cur_datetime = parser.parse(start_date)
-		while cur_datetime <= parser.parse(end_date):
-			depart_date = cur_datetime.strftime('%m/%d/%y')
-			params = alert_params(depart_date,depart_airport,arrive_airport,buckets=buckets,flightno=None,nonstop=True)
-			try:
-				search_results = self.alert_search(params)
-			except Exception as e:
-				print e
-				continue
-			for seg in search_results:
-				if sum(seg.search_results.values()) > 0:
-					print(seg.condensed_repr())
-					found_segs.append(seg)
-			cur_datetime += timedelta(1)
-		return found_segs
-
-
-def extract_data(input_html):
-	soup = bs4.BeautifulSoup(input_html,'lxml')
-	trips = soup.findAll(attrs={"class": "tdSegmentBlock"})
-
-	alltrips = []
-	for t in trips:
-		depart = t.findAll(attrs={"class": "tdDepart"})
-		arrive = t.findAll(attrs={"class": "tdArrive"})
-		segmentdtl = t.findAll(attrs={"class": "tdSegmentDtl"})
-		segs = zip(depart,arrive,segmentdtl)
-		tripdata = []
-		for s in segs:
-			newseg = Segment()
-			buckets = s[2].find(text=bucket_regex)
-			if buckets:
-				newseg.availability = buckets
-			deptime = s[0].find(attrs={"class": "timeDepart"})
-			newseg.depart_time = deptime.text
-			newseg.depart_date,newseg.depart_airport = get_airport(deptime)
-			arrtime = s[1].find(attrs={"class": "timeArrive"})
-			newseg.arrive_time = arrtime.text
-			newseg.arrive_date,newseg.arrive_airport = get_airport(arrtime)
-			newseg.flightno = s[2].find(text=re.compile('('+'|'.join(airline_codes)+')[0-9]+'))
-			newseg.aircraft = s[2].find(text=re.compile('('+'|'.join(aircraft_types)+')'))
-			tripdata.append(newseg)
-		alltrips.append(tripdata)
-	return alltrips
-
-
-def run_alerts(config,ses=None,filename='alerts/alert_defs.txt',aggregate=False):
-	"""If no output file specified then send email to address specified in config.
+def run_alerts(config, ses=None, filename='alerts/alert_defs.txt', aggregate=False, site_version=None, max_retries=100):
+	"""If no output file is specified then send email to address specified in config.
+	   If site_version is specified then the script will repeatedly log in until the specified site version is obtained
+	   (up to max_retries times).
 	"""
 	# open Session
 	if not ses:
 		try:
-			ses = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
+			for i in range(max_retries):
+				ses = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
+				if not site_version or ses.site_version == site_version:
+					break
 		except Exception as e:
 			subject = e.args[0]
 			message = 'User: '+config['ual_user']
@@ -467,7 +107,10 @@ def run_alerts(config,ses=None,filename='alerts/alert_defs.txt',aggregate=False)
 			if sum(seg.search_results.values()) > 0:
 				results.append(seg)
 				if not aggregate:
-					seg.send_alert_email(a)
+					subject = config['email_subject'] if config['email_subject'] else 'Results for '+str(a)
+					message = 'Query: '+str(a)+'\nResults: '+seg.condensed_repr()
+					send_email(subject,message,config)
+
 	if aggregate:
 		if results:
 			subject = config['email_subject'] if config['email_subject'] else 'SuperFlyer search results found'
@@ -485,12 +128,12 @@ def run_alerts(config,ses=None,filename='alerts/alert_defs.txt',aggregate=False)
 def test():
 	config = configure('../ual.config')
 	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],logging=True)
-	P = alert_params('11/14/15','OGG','SFO',nonstop=True)
+	P = alert_params('2/22/16','OGG','SFO',nonstop=True)
 	results = S.search(P,logging=True)
-	return(S)
+	#return(S)
 	#data = extract_data(results)
-	#X = S.basic_search(P)
-	#return S,list(chain.from_iterable(X)))
+	X = S.basic_search(P)
+	return S,list(chain.from_iterable(X))
 
 def scratch():
 	x = X[0][0]
@@ -513,9 +156,15 @@ if __name__=='__main__':
 	argparser.add_argument("-o", metavar="output_file", type=str, help="filename to store results")
 	argparser.add_argument('-s', metavar="email_subject", type=str, help="subject to be sent in emails")
 
+	# delivery methods
 	recipient = argparser.add_mutually_exclusive_group()
 	recipient.add_argument("-t", action="store_true", help="send text message instead of email")
 	recipient.add_argument("-e", metavar="email_address", type=str, help="email address to send results to")
+
+	# site version
+	version = argparser.add_mutually_exclusive_group()
+	version.add_argument('--force_old_site', action='store_true')
+	version.add_argument('--force_new_site', action='store_true')
 
 	#positional arguments
 	argparser.add_argument('-c', metavar="config_file", default="ual.config", type=str, help="filename containing configuration parameters (default: ual.config)")
@@ -545,13 +194,23 @@ if __name__=='__main__':
 		config['email_subject'] = args.s
 	else:
 		config['email_subject'] = None
+
+	# configure the site version
+	if args.force_old_site:
+		site_version = "Old"
+	elif args.force_new_site:
+		site_version = "New"
+	else:
+		site_version = None
+
+	# run the alerts
 	if args.alert_file:
 		if args.a:
-			S = run_alerts(config,ses=None,filename=args.alert_file,aggregate=True)
+			S = run_alerts(config,ses=None,filename=args.alert_file,aggregate=True,site_version=site_version)
 		else:
-			S = run_alerts(config,ses=None,filename=args.alert_file)
+			S = run_alerts(config,ses=None,filename=args.alert_file,site_version=site_version)
 	else:
-		S = run_alerts(config)
+		S = run_alerts(config,site_version=site_version)
 
 
 
