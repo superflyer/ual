@@ -40,6 +40,7 @@ def query_form():
 @app.route('/searchresults', method='POST')
 def query_submit():
 	global S
+	global site_version, max_retries
 
 	depart_airport = request.forms.get('departAirport')
 	arrive_airport = request.forms.get('arriveAirport')
@@ -92,7 +93,10 @@ def query_submit():
 	else:
 		if S.last_login_time < datetime.now() - timedelta(minutes=30):
 			config = configure(args.c)
-			S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
+			for i in range(max_retries):
+				S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
+				if not site_version or S.site_version == site_version:
+					break
 		result = S.basic_search(params)
 		if params.nonstop:
 			result = [t for t in result if len(t)==1]
@@ -113,12 +117,29 @@ if __name__=='__main__':
 	argparser.add_argument('-c', metavar="config_file", default="ual.config", type=str, help="filename containing configuration parameters (default: ual.config)")
 	argparser.add_argument('-p', metavar="port", default="80", type=int, help="port on which to run web server (default: 80)")
 
+	# site version
+	version = argparser.add_mutually_exclusive_group()
+	version.add_argument('--force_old_site', action='store_true')
+	version.add_argument('--force_new_site', action='store_true')
+
 	args = argparser.parse_args()
 
+	# configure the site version, hold it in a global variable
+	if args.force_old_site:
+		site_version = "Old"
+	elif args.force_new_site:
+		site_version = "New"
+	else:
+		site_version = None
+
 	# global variable to hold session
+	max_retries = 10
 	if not args.t:
 		config = configure(args.c)
-		S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
+		for i in range(max_retries):
+			S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
+			if not site_version or S.site_version == site_version:
+				break
 
 	if args.l:
 		run(app, host='localhost', port=args.p, reloader=True)
