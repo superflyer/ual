@@ -30,11 +30,15 @@ def get_airport(tdtime):
 	return tddate.text,tdairport.text
 
 def format_airport(airport):
-	return airport_pattern.match(airport).group(1)
+	m = airport_pattern.match(airport)
+	if m:
+		return m.group(1)
+	else:
+		return airport
 
 def format_aircraft(aircraft):
-	if not aircraft:
-		return ''
+	if len(aircraft) <= 3:
+		return aircraft
 	elif aircraft[:6] == 'Boeing':
 		boeing = re.match('Boeing (7[0-9])[0-9]-([0-9]).*',aircraft)
 		if boeing:
@@ -54,6 +58,8 @@ def format_aircraft(aircraft):
 		embraer = re.match('Embraer ERJ-1([0-9]{2})',aircraft)
 		if embraer:
 			return 'E'+embraer.group(1)
+	elif not aircraft:
+		return ''
 	return aircraft
 
 def long_search_def(start_date,end_date,depart_airport,arrive_airport,buckets='',flightno='',filename='alerts/long_search_defs.txt'):
@@ -102,7 +108,8 @@ class Segment(object):
 		self.search_query = None
 	def __repr__(self):
 		paramlist=[self.flightno,self.depart_date,self.depart_airport,self.depart_time,
-		self.arrive_airport,self.arrive_time,self.aircraft,self.availability.strip()]
+		self.arrive_airport,self.arrive_date,self.arrive_time,self.aircraft,
+		self.availability.strip()]
 		return(' '.join(paramlist))
 	def __str__(self):
 		return self.__repr__()
@@ -117,13 +124,22 @@ class Segment(object):
 				for offset in ['-1','+1','+2']:
 					if self.arrive_datetime.day == (self.depart_datetime+timedelta(days=int(offset))).day:
 						self.day_offset = offset
-	def format_depairport(self):
-		return format_airport(self.depart_airport)
-	def format_arrairport(self):
-		return format_airport(self.arrive_airport)
 	def bucket_repr(self):
 		if self.search_query:
-			return ' '.join([(remapped_classes[b] if b in remapped_classes else b)+str(self.search_results[b])+(str(self.search_results[b+'N']) if b in Nclasses else '') for b in self.search_query])
+			result_list = []
+			for b in self.search_query:
+				bucketname = remapped_classes[b] if b in remapped_classes else b
+				basic_count = self.search_results[b]
+				elite_count = self.search_results[b+'N'] if b in Nclasses and self.flightno[:2]=='UA' else ''
+				result_list.append(bucketname+str(basic_count)+str(elite_count))
+			return ' '.join(result_list)
+
+			# return ' '.join([
+			# 	(remapped_classes[b] if b in remapped_classes else b)+
+			# 	str(self.search_results[b])+
+			# 	(str(self.search_results[b+'N']) if b in Nclasses else '')
+			#  for b in self.search_query])
+
 		elif self.search_query=='':
 			return 'NA'
 		else:
@@ -152,6 +168,7 @@ class Segment(object):
 			if inv:
 				results[b] = int(inv.group(1))
 				self.search_query += b
+			# look for elite availability on UA flights
 			if b in Nclasses:
 				invN = re.match('.*'+b+'N([0-9]).*',self.availability)
 				if invN:

@@ -18,9 +18,11 @@ class ual_session(requests.Session):
 		extract_data, extract_data_old, extract_data_new: parse the response returned by a search into segments and trips
 	"""
 
-	def __init__(self,user=None,pwd=None,logging=False,useragent=None):
+	def __init__(self, user=None, pwd=None, ua_only=False, logging=False, useragent=None):
 		""" Initialize session and attempt to log in user."""
 		requests.Session.__init__(self)
+		self.logging=logging
+		self.ua_only=ua_only
 		if useragent:
 			self.headers.update({'User-Agent':useragent})
 
@@ -37,14 +39,17 @@ class ual_session(requests.Session):
 		if logging:
 			print(self.site_version + " united.com detected.")
 
+		# initialize empty cart_id
+		self.cart_id = None
+
 		if user:
 			# attempt to log in the user
 			if logging:
 				print("Logging in to united.com")
 			if self.site_version == "Old":
-				self.login_old(user, pwd, logging)
+				self.login_old(user, pwd)
 			elif self.site_version == "New":
-				self.login_new(user, pwd, logging)
+				self.login_new(user, pwd)
 
 			# look for login errors
 			# the following could be put in a loop for retries, not necessary at the moment.
@@ -66,7 +71,7 @@ class ual_session(requests.Session):
 				self.last_login_time = datetime.now()
 
 
-	def login_old(self,user,pwd,logging=False):
+	def login_old(self,user,pwd):
 		""" User login on old united.com."""
 		login_params = set_login_params(self.cookies['SID'])
 		login_params['ctl00$ContentInfo$accountsummary$OpNum1$txtOPNum'] = user
@@ -74,7 +79,7 @@ class ual_session(requests.Session):
 		self.signin = self.post('https://www.united.com/web/en-US/default.aspx',data=login_params,allow_redirects=True)
 
 
-	def login_new(self,user,pwd,logging=False):
+	def login_new(self,user,pwd):
 		""" User login on new united.com."""
 		failed = False
 		login_params = {'IsHomePageTile':'True',
@@ -85,19 +90,19 @@ class ual_session(requests.Session):
 			data=login_params,allow_redirects=True)
 
 
-	def search(self,params,logging=False):
+	def search(self,params):
 		if self.site_version == "Old":
-			return self.search_old(params,logging)
+			return self.search_old(params)
 		elif self.site_version == "New":
-			return self.search_new(params,logging)
-		if logging:
+			return self.search_new(params)
+		if self.logging:
 			print("Received " + str(len(self.search_results.text)) + " characters")
 			F = codecs.open('search.html','w','utf-8')
 			F.write(self.search_results.text)
 			F.close()
 
 
-	def search_old(self,params,logging=False):
+	def search_old(self,params):
 		"""Perform flight search on old united.com.  Response is stored in self.search_results."""
 		search_params = set_search_params(self.cookies['SID'])
 		search_params['ctl00$ContentInfo$Booking1$Origin$txtOrigin']=params.depart_airport
@@ -108,7 +113,7 @@ class ual_session(requests.Session):
 		self.search_results = self.post('https://www.united.com/web/en-US/default.aspx',data=search_params,allow_redirects=True,headers=self.headers)
 
 
-	def search_new(self,params,logging=False):
+	def search_new(self,params):
 		"""Perform flight search on new united.com.  Response is stored in self.search_results."""
 
 		search_params = new_search_params(params.depart_airport, params.arrive_airport, params.depart_date)
@@ -116,27 +121,29 @@ class ual_session(requests.Session):
 			search_params['NonStopOnly']='true'
 
 		# load search page to get a cart ID
-		if logging:
-			print("Loading search page")
-		self.search_page = self.post('https://www.united.com/ual/en/us/flight-search/book-a-flight',
-			data=search_params,allow_redirects=True,headers=self.headers)
-		if logging:
-			print("Received " + str(len(self.search_page.text)) + " characters")
-			F = codecs.open('search_page.html','w','utf-8')
-			F.write(self.search_page.text)
-			F.close()
+		if not self.cart_id:
+			if self.logging:
+				print("Loading search page")
+			self.search_page = self.post('https://www.united.com/ual/en/us/flight-search/book-a-flight',
+				data=search_params,allow_redirects=True,headers=self.headers)
+			if self.logging:
+				print("Received " + str(len(self.search_page.text)) + " characters")
+				F = codecs.open('search_page.html','w','utf-8')
+				F.write(self.search_page.text)
+				F.close()
 
-		# extract cart ID from search page
-		soup = bs4.BeautifulSoup(self.search_page.text,'lxml')
-		cart_id_input = soup.findAll(attrs={"name":"CartId"})
-		cart_id = cart_id_input[0]['value']
-		print(cart_id)
+			# extract cart ID from search page
+			soup = bs4.BeautifulSoup(self.search_page.text,'lxml')
+			cart_id_input = soup.findAll(attrs={"name":"CartId"})
+			self.cart_id = cart_id_input[0]['value']
+			if self.logging:
+				print("Cart ID: " + self.cart_id)
 
 		# get search results
 		# this post is to a json endpoint, the params are returned json-encoded
 		search_params_full = new_search_params_full(params.depart_airport, params.arrive_airport, 
-													params.depart_datetime, cart_id, nonstop=params.nonstop)	
-		if logging:
+													params.depart_datetime, self.cart_id, nonstop=params.nonstop)	
+		if self.logging:
 			print("Loading search results")
 		self.headers.update({'Content-Type':'application/json'})
 		self.search_results = self.post('https://www.united.com/ual/en/us/flight-search/book-a-flight/flightshopping/getflightresults/rev',
@@ -147,9 +154,11 @@ class ual_session(requests.Session):
 
 	def extract_data(self):
 		if self.site_version == "Old":
-			return self.extract_data_old()
+			self.trips = self.extract_data_old()
 		elif self.site_version == "New":
-			return self.extract_data_new()
+			self.trips = self.extract_data_new()
+		if self.ua_only:
+			self.trips = [t for t in self.trips if all([seg.flightno[:2]=='UA' for seg in t])]
 
 
 	def extract_data_old(self):
@@ -182,15 +191,41 @@ class ual_session(requests.Session):
 
 
 	def extract_data_new(self):
-		return None
+		results = json.loads(self.search_results.text)
+		trips = results['data']['Trips'][0]['Flights']
+
+		alltrips = []
+		for t in trips:
+			tripdata = []
+			seg = t
+			while seg:
+				newseg = Segment()
+				newseg.depart_airport = seg['Origin']
+				newseg.arrive_airport = seg['Destination']
+				newseg.aircraft = seg['EquipmentDisclosures']['EquipmentType']
+				newseg.availability = ' '.join(seg['BookingClassAvailList'])
+				newseg.flightno = seg['MarketingCarrier']+seg['FlightNumber']
+				if seg['OperatingCarrier'] != seg['MarketingCarrier']:
+					newseg.flightno += ' (' + seg['OperatingCarrier'] + ')'
+				newseg.depart_date, newseg.depart_time = seg['DepartDateTime'].split(' ')
+				newseg.arrive_date, newseg.arrive_time = seg['DestinationDateTime'].split(' ')
+				tripdata.append(newseg)
+				connections = seg['Connections']
+				if connections:
+					seg = connections[0]
+				else:
+					seg = None
+			alltrips.append(tripdata)
+
+		return alltrips
 
 
 	def alert_search(self,params):
 		"""Perform the search specified by params and return results matching the specified fare buckets."""
 		self.search(params)
-		trips = self.extract_data()
+		self.extract_data()
 		found_segs = []
-		for t in trips:
+		for t in self.trips:
 			if params.nonstop and len(t) > 1:
 				continue
 			for seg in t:
@@ -198,7 +233,7 @@ class ual_session(requests.Session):
 				if not params.flightno or seg.flightno in params.flightno:
 					found_segs.append(seg)
 		if len(found_segs)==0:
-			failed = self.search(params,logging=True)
+			failed = self.search(params)
 			raise Exception('No results found for '+str(params))
 		return found_segs
 
@@ -206,9 +241,9 @@ class ual_session(requests.Session):
 	def basic_search(self,params):
 		"""Perform the search specified by params and return all results."""
 		self.search(params)
-		data = self.extract_data()
+		self.extract_data()
 		# the following is for logging only
-		for trip in data:
+		for trip in self.trips:
 			for seg in trip:
 				if params.buckets:
 					seg.search_buckets(params.buckets)

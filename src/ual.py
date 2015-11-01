@@ -8,6 +8,7 @@ from itertools import chain
 
 from ual_session import *
 
+
 #redefine stdout/stderr to handle utf-8
 stdout = codecs.getwriter('utf-8')(sys.stdout)
 stderr = codecs.getwriter('utf-8')(sys.stderr)
@@ -38,7 +39,8 @@ def configure(config_file='ual.config'):
 	F.close()
 	return config
 
-def run_alerts(config, ses=None, filename='alerts/alert_defs.txt', aggregate=False, site_version=None, max_retries=100):
+def run_alerts(config, ses=None, filename='alerts/alert_defs.txt', aggregate=False, site_version=None, 
+	max_retries=100, ua_only=False, logging=False):
 	"""If no output file is specified then send email to address specified in config.
 	   If site_version is specified then the script will repeatedly log in until the specified site version is obtained
 	   (up to max_retries times).
@@ -47,7 +49,8 @@ def run_alerts(config, ses=None, filename='alerts/alert_defs.txt', aggregate=Fal
 	if not ses:
 		try:
 			for i in range(max_retries):
-				ses = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
+				ses = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],
+					ua_only=ua_only, logging=logging)
 				if not site_version or ses.site_version == site_version:
 					break
 		except Exception as e:
@@ -102,7 +105,9 @@ def run_alerts(config, ses=None, filename='alerts/alert_defs.txt', aggregate=Fal
 			try:
 				print(seg.condensed_repr())
 			except:
+				print(seg)
 				stderr.write('Error getting string representation of segment.\n')
+				raise
 				continue
 			if sum(seg.search_results.values()) > 0:
 				results.append(seg)
@@ -124,23 +129,6 @@ def run_alerts(config, ses=None, filename='alerts/alert_defs.txt', aggregate=Fal
 	return(ses)
 
 
-
-def test():
-	config = configure('../ual.config')
-	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],logging=True)
-	P = alert_params('2/22/16','OGG','SFO',nonstop=True)
-	results = S.search(P,logging=True)
-	#return(S)
-	#data = extract_data(results)
-	X = S.basic_search(P)
-	return S,list(chain.from_iterable(X))
-
-def scratch():
-	x = X[0][0]
-	print(x.condensed_repr())
-	x.search_buckets('JIRYX')
-	print(x.condensed_repr())
-
 def ual(logging=False):
 	"""quickly load a session for debugging purposes"""
 	config = configure('../ual.config')
@@ -153,6 +141,8 @@ if __name__=='__main__':
 
 	# optional arguments
 	argparser.add_argument("-a", action="store_true", help="search on date range and aggregate results")
+	argparser.add_argument("-v", action="store_true", help="verbose output with response logging")
+	argparser.add_argument("-u", action="store_true", help="search for United-operated flights only")
 	argparser.add_argument("-o", metavar="output_file", type=str, help="filename to store results")
 	argparser.add_argument('-s', metavar="email_subject", type=str, help="subject to be sent in emails")
 
@@ -195,6 +185,18 @@ if __name__=='__main__':
 	else:
 		config['email_subject'] = None
 
+	# set logging
+	if args.v:
+		logging=True
+	else:
+		logging=False
+
+	# set ua-only flag:
+	if args.u:
+		ua_only=True
+	else:
+		ua_only=False
+
 	# configure the site version
 	if args.force_old_site:
 		site_version = "Old"
@@ -206,11 +208,14 @@ if __name__=='__main__':
 	# run the alerts
 	if args.alert_file:
 		if args.a:
-			S = run_alerts(config,ses=None,filename=args.alert_file,aggregate=True,site_version=site_version)
+			S = run_alerts(config,ses=None,filename=args.alert_file,aggregate=True,site_version=site_version,
+				ua_only=ua_only, logging=logging)
 		else:
-			S = run_alerts(config,ses=None,filename=args.alert_file,site_version=site_version)
+			S = run_alerts(config,ses=None,filename=args.alert_file,site_version=site_version,
+				ua_only=ua_only, logging=logging)
 	else:
-		S = run_alerts(config,site_version=site_version)
+		S = run_alerts(config,site_version=site_version,
+			ua_only=ua_only, logging=logging)
 
 
 
