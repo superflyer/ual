@@ -252,7 +252,7 @@ class ual_session(requests.Session):
 				except:
 					print(seg)
 			print('---')
-		return data
+		return self.trips
 
 
 	def long_search(self,start_date,end_date,depart_airport,arrive_airport,buckets=None,flightno=None):

@@ -59,10 +59,13 @@ def query_submit():
 	nonstop = request.forms.get('nonstop')
 
 	depart_date = depart_month + '/' + depart_day + '/' + str(date.today().year)
-	if parser.parse(depart_date) + timedelta(days=1,minutes=-1) < datetime.today() :
-		depart_date = depart_month + '/' + depart_day + '/' + str(date.today().year+1)
-	if parser.parse(depart_date) > datetime.today() + timedelta(days=331):
-		return template("templates/error",err='Depart date is in the past or more than 331 days in the future.')
+	try:
+		if parser.parse(depart_date) + timedelta(days=1,minutes=-1) < datetime.today() :
+			depart_date = depart_month + '/' + depart_day + '/' + str(date.today().year+1)
+		if parser.parse(depart_date) > datetime.today() + timedelta(days=331):
+			return template("templates/error",err='Depart date is in the past or more than 331 days in the future.')
+	except ValueError as e:
+		return template("templates/error",err='Error parsing date: '+str(e))
 
 	buckets = ''
 	if not all_classes:
@@ -83,6 +86,7 @@ def query_submit():
 		F = open('ual_test/international.html')
 		raw_data = F.read()
 		F.close()
+		# need to mock up a session
 		result = extract_data(raw_data)
 		for trip in result:
 			for seg in trip:
@@ -98,6 +102,7 @@ def query_submit():
 				if not site_version or S.site_version == site_version:
 					break
 		result = S.basic_search(params)
+		# can't be sure that nonstop flag works
 		if params.nonstop:
 			result = [t for t in result if len(t)==1]
 		sorted_result = sorted(result, key=lambda x: (len(x), x[0].depart_datetime))

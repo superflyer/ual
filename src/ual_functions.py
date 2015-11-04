@@ -115,7 +115,9 @@ class Segment(object):
 		return self.__repr__()
 	def format_deptime(self):
 		self.depart_datetime = parser.parse(self.depart_date+' '+self.depart_time)
+
 #		return self.depart_datetime.strftime('%m/%d/%y %H:%M')
+
 	def format_arrtime(self):
 		self.arrive_datetime = parser.parse(self.arrive_date+' '+self.arrive_time)
 		if self.depart_date:
@@ -124,6 +126,7 @@ class Segment(object):
 				for offset in ['-1','+1','+2']:
 					if self.arrive_datetime.day == (self.depart_datetime+timedelta(days=int(offset))).day:
 						self.day_offset = offset
+
 	def bucket_repr(self):
 		if self.search_query:
 			result_list = []
@@ -144,6 +147,7 @@ class Segment(object):
 			return 'NA'
 		else:
 			return self.availability.strip()
+
 	def condensed_repr(self):
 		self.format_deptime()
 		self.format_arrtime()
