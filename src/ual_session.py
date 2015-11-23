@@ -92,14 +92,15 @@ class ual_session(requests.Session):
 
 	def search(self,params):
 		if self.site_version == "Old":
-			return self.search_old(params)
+			R = self.search_old(params)
 		elif self.site_version == "New":
-			return self.search_new(params)
+			R = self.search_new(params)
 		if self.logging:
 			print("Received " + str(len(self.search_results.text)) + " characters")
 			F = codecs.open('search.html','w','utf-8')
 			F.write(self.search_results.text)
 			F.close()
+		return R
 
 
 	def search_old(self,params):
@@ -203,8 +204,12 @@ class ual_session(requests.Session):
 				newseg.depart_airport = seg['Origin']
 				newseg.arrive_airport = seg['Destination']
 				newseg.aircraft = seg['EquipmentDisclosures']['EquipmentType']
-				newseg.availability = ' '.join(seg['BookingClassAvailList'])
 				newseg.flightno = seg['MarketingCarrier']+seg['FlightNumber']
+				print newseg.flightno
+				if len(tripdata) == 0 or newseg.flightno != tripdata[-1].flightno:
+					newseg.availability = ' '.join(seg['BookingClassAvailList'])
+				else: # no availability appears for second leg of '1-stop' flights
+					newseg.availability = ''
 				if seg['OperatingCarrier'] != seg['MarketingCarrier']:
 					newseg.flightno += ' (' + seg['OperatingCarrier'] + ')'
 				newseg.depart_date, newseg.depart_time = seg['DepartDateTime'].split(' ')
