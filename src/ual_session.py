@@ -205,7 +205,6 @@ class ual_session(requests.Session):
 				newseg.arrive_airport = seg['Destination']
 				newseg.aircraft = seg['EquipmentDisclosures']['EquipmentType']
 				newseg.flightno = seg['MarketingCarrier']+seg['FlightNumber']
-				print newseg.flightno
 				if len(tripdata) == 0 or newseg.flightno != tripdata[-1].flightno:
 					newseg.availability = ' '.join(seg['BookingClassAvailList'])
 				else: # no availability appears for second leg of '1-stop' flights
