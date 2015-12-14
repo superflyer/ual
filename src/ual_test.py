@@ -2,8 +2,10 @@ from ual import *
 
 def test(num_tests=1):
 	config = configure('../ual.config')
+	results = []
 	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],logging=True)
-	Plist = [['2/22/16','OGG','SFO',True],
+	Plist = [['6/21/16','SFO','MSP',True],
+			 ['2/22/16','OGG','SFO',True],
 			 ['2/22/16','SFO','FRA',True],
 			 ['2/22/16','SFO','YUL',False],
 			 ['5/22/16','IAD','DXB',False],
@@ -13,12 +15,12 @@ def test(num_tests=1):
 			 ['3/22/16','EWR','BOM',True]]
 	for i in range(min(num_tests,len(Plist))):
 		P = alert_params(Plist[i][0],Plist[i][1],Plist[i][2],nonstop=Plist[i][3])
-		S.search(P,logging=True)
+		S.search(P)
 		S.extract_data()
 		F = codecs.open('searches/data'+Plist[i][1]+Plist[i][2]+str(i),'w','utf-8')
 		F.write(S.trips)
 		F.close()
-	#X = S.basic_search(P)
+		results.append(S.basic_search(P))
 	return S
 
 def scratch():
@@ -47,4 +49,5 @@ def test_parsing(filename):
 
 if __name__ == '__main__':
 	pass
-	T = test_parsing('searches/SFOFRA1.json')
+	X = test()
+	# T = test_parsing('searches/SFOFRA1.json')
