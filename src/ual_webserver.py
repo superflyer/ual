@@ -58,12 +58,18 @@ def query_submit():
 	flightno = request.forms.get('flightNumber')
 	nonstop = request.forms.get('nonstop')
 
-	depart_date = depart_month + '/' + depart_day + '/' + str(date.today().year)
+	# add the correct year to the departure date
+	if int(depart_month) > date.today().month or \
+		int(depart_month) == date.today().month and int(depart_day) >= date.today().day:
+		depart_year = str(date.today().year)
+	else:
+		depart_year = str(date.today().year + 1)
+	depart_date = '/'.join([depart_month, depart_day, depart_year])
+
+	# parse date and check it's not too far out
 	try:
-		if parser.parse(depart_date) + timedelta(days=1,minutes=-1) < datetime.today() :
-			depart_date = depart_month + '/' + depart_day + '/' + str(date.today().year+1)
 		if parser.parse(depart_date) > datetime.today() + timedelta(days=331):
-			return template("templates/error",err='Depart date is in the past or more than 331 days in the future.')
+			return template("templates/error",err='Depart date is more than 331 days in the future.')
 	except ValueError as e:
 		return template("templates/error",err='Error parsing date: '+str(e))
 
