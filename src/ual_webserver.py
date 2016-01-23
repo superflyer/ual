@@ -68,8 +68,8 @@ def query_submit():
 
 	# parse date and check it's not too far out
 	try:
-		if parser.parse(depart_date) > datetime.today() + timedelta(days=331):
-			return template("templates/error",err='Depart date is more than 331 days in the future.')
+		if parser.parse(depart_date) > datetime.today() + timedelta(days=max_days_out):
+			return template("templates/error",err='Depart date is more than %s days in the future.' % max_days_out)
 	except ValueError as e:
 		return template("templates/error",err='Error parsing date: '+str(e))
 

@@ -18,6 +18,7 @@ min_avail = 'FJY'
 award_buckets = 'OIRX'
 #bucket_regex = re.compile(', '.join([c+'[0-9]' for c in Yclasses]))
 bucket_regex = re.compile(', '.join(['[A-Z][0-9]']*10))
+max_days_out = 337  #maximum number of days out to search
 
 aircraft_types = ['Boeing','Airbus','Canadair','Embraer','Avro','ATR']
 airline_codes = ['UA','LH','WP','LX','NH','AC','HA']
@@ -190,8 +191,8 @@ class alert_params(object):
 		self.depart_datetime = parser.parse(depart_date)  # assume h:mm = 0:00
 		if self.depart_datetime + timedelta(days=1,minutes=-1) < datetime.today() :
 			raise Exception('Depart date is in the past.')
-		if self.depart_datetime > datetime.today() + timedelta(days=331):
-			raise Exception('Depart date is more than 331 days in the future.')
+		if self.depart_datetime > datetime.today() + timedelta(days=max_days_out):
+			raise Exception('Depart date is more than %s days in the future.' % max_days_out)
 		self.depart_date=depart_date
 		self.nonstop=nonstop
 	def __repr__(self):
