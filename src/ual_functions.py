@@ -75,7 +75,7 @@ def long_search_def(start_date,end_date,depart_airport,arrive_airport,buckets=''
 	return 1
 
 
-def send_email(subject,message,config):
+def send_email(subject, message, config):
 	if config['output_file']:
 		F = open(config['output_file'],'a')
 		F.write(message)
@@ -190,9 +190,9 @@ class alert_params(object):
 		# need to do some error-checking on dates
 		self.depart_datetime = parser.parse(depart_date)  # assume h:mm = 0:00
 		if self.depart_datetime + timedelta(days=1,minutes=-1) < datetime.today() :
-			raise Exception('Depart date is in the past.')
+			raise ValueError('Depart date is in the past.')
 		if self.depart_datetime > datetime.today() + timedelta(days=max_days_out):
-			raise Exception('Depart date is more than %s days in the future.' % max_days_out)
+			raise ValueError('Depart date is more than %s days in the future.' % max_days_out)
 		self.depart_date=depart_date
 		self.nonstop=nonstop
 	def __repr__(self):

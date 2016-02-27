@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from ual import *
 
 def test(num_tests=1):
@@ -33,8 +35,7 @@ class foo(object):
 	"""docstring for foo"""
 	def __init__(self, arg):
 		super(foo, self).__init__()
-		self.text = arg
-		
+		self.text = arg	
 
 def test_parsing(filename):
 	config = configure('../ual.config')
@@ -47,7 +48,13 @@ def test_parsing(filename):
 
 	return S.trips
 
+def mr_test(filename):
+	config = configure('ual.config')
+	P = parse_mr_file(filename)
+	print P
+	S = run_mr_search(config, filename)
+
 if __name__ == '__main__':
-	pass
-	X = test()
+	mr_test('alerts/mr_searches.txt')
+	# X = test()
 	# T = test_parsing('searches/SFOFRA1.json')

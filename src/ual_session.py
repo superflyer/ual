@@ -21,8 +21,8 @@ class ual_session(requests.Session):
 	def __init__(self, user=None, pwd=None, ua_only=False, logging=False, useragent=None):
 		""" Initialize session and attempt to log in user."""
 		requests.Session.__init__(self)
-		self.logging=logging
-		self.ua_only=ua_only
+		self.logging = logging
+		self.ua_only = ua_only
 		if useragent:
 			self.headers.update({'User-Agent':useragent})
 
@@ -159,7 +159,8 @@ class ual_session(requests.Session):
 		elif self.site_version == "New":
 			self.trips = self.extract_data_new()
 		if self.ua_only:
-			self.trips = [t for t in self.trips if all([seg.flightno[:2]=='UA' for seg in t])]
+			self.trips = [t for t in self.trips if 
+				all([seg.flightno[:2]=='UA' and seg.flightno[-1]!=')' for seg in t])]
 
 
 	def extract_data_old(self):

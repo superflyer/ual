@@ -6,7 +6,8 @@ import argparse
 
 from itertools import chain
 
-from ual_session import *
+from ual_session import * 
+from ual_mileagerun import *
 
 
 #redefine stdout/stderr to handle utf-8
@@ -39,25 +40,44 @@ def configure(config_file='ual.config'):
 	F.close()
 	return config
 
-def run_alerts(config, ses=None, filename='alerts/alert_defs.txt', aggregate=False, site_version=None, 
-	max_retries=100, ua_only=False, logging=False):
+def open_session(config, ua_only=False, logging=False):
+	# open Session
+	try:
+		ses = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],
+			ua_only=ua_only, logging=logging)
+	except Exception as e:
+		subject = e.args[0]
+		message = 'User: '+config['ual_user']
+		send_email(subject,message,config)
+		raise
+	return ses
+
+
+def send_aggregate_results(config, results=None, errors=None, 
+		subject='SuperFlyer search results found'):
+	if results:
+		message = '\n'.join([seg.condensed_repr() for seg in sorted(results, key=lambda x: x.depart_datetime)])
+		e = send_email(subject,message,config)
+	else:
+		e = 1
+	if errors:
+		subject_err = 'Errors in SuperFlyer search'
+		message_err = '\n'.join([str(a)+': '+str(e) for a,e in errors])
+		e1 = send_email(subject_err,message_err,config)
+	else: 
+		e1 = 0
+	return (e, e1)
+
+
+def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False, 
+	ua_only=False, logging=False):
 	"""If no output file is specified then send email to address specified in config.
 	   If site_version is specified then the script will repeatedly log in until the specified site version is obtained
 	   (up to max_retries times).
 	"""
-	# open Session
-	if not ses:
-		try:
-			for i in range(max_retries):
-				ses = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],
-					ua_only=ua_only, logging=logging)
-				if not site_version or ses.site_version == site_version:
-					break
-		except Exception as e:
-			subject = e.args[0]
-			message = 'User: '+config['ual_user']
-			send_email(subject,message,config)
-			raise
+
+	ses = open_session(config, ua_only=ua_only, logging=logging)
+
 	# read alert defs
 	F = open(filename,'r')
 	alert_defs = []
@@ -73,6 +93,7 @@ def run_alerts(config, ses=None, filename='alerts/alert_defs.txt', aggregate=Fal
 			a.nonstop=True
 			cur_datetime = parser.parse(data[0])
 			while cur_datetime <= parser.parse(end_date):
+				# if doing an aggregate search, copy the search definition for each day
 				b = a.copy()
 				b.depart_date = cur_datetime.strftime('%m/%d/%y')
 				b.depart_datetime = cur_datetime
@@ -107,9 +128,8 @@ def run_alerts(config, ses=None, filename='alerts/alert_defs.txt', aggregate=Fal
 			except:
 				print(seg)
 				stderr.write('Error getting string representation of segment.\n')
-				raise
 				continue
-			if sum(seg.search_results.values()) > 0:
+			if max(seg.search_results.values()) > 0:
 				results.append(seg)
 				if not aggregate:
 					subject = config['email_subject'] if config['email_subject'] else 'Results for '+str(a)
@@ -117,15 +137,19 @@ def run_alerts(config, ses=None, filename='alerts/alert_defs.txt', aggregate=Fal
 					send_email(subject,message,config)
 
 	if aggregate:
-		if results:
-			subject = config['email_subject'] if config['email_subject'] else 'SuperFlyer search results found'
-			message = '\n'.join([seg.condensed_repr() for seg in sorted(results, key=lambda x: x.depart_datetime)])
-			e = send_email(subject,message,config)
-		if errors:
-			subject_err = 'Errors in SuperFlyer search'
-			message_err = '\n'.join([str(a)+': '+str(e) for a,e in errors])
-			e1 = send_email(subject_err,message_err,config)
+		e, e1 = send_aggregate_results(config, results, errors)
 
+	return(ses)
+
+
+def run_mr_search(config, filename='alerts/mr_searches.txt', logging=False):
+	"""Performs a mileage run search using parameters specified in the given file."""
+	ses = open_session(config, ua_only=True, logging=logging)
+	mr_searches = parse_mr_file(filename)
+	print datetime.today().strftime('%c')
+	for m in mr_searches:
+		results, errors = m.search(ses)
+		e, e1 = send_aggregate_results(config, results, errors, m.name + ' mileage run search results')
 	return(ses)
 
 
@@ -135,12 +159,17 @@ def ual(logging=False):
 	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],logging=logging)
 	return S
 
+
 if __name__=='__main__':
 
 	argparser = argparse.ArgumentParser(description='Search united.com for flight availability.')
 
+	# delivery methods
+	search_type = argparser.add_mutually_exclusive_group()
+	search_type.add_argument("-a", action="store_true", help="search on date range and aggregate results")
+	search_type.add_argument("-m", action="store_true", help="mileage run search")
+
 	# optional arguments
-	argparser.add_argument("-a", action="store_true", help="search on date range and aggregate results")
 	argparser.add_argument("-v", action="store_true", help="verbose output with response logging")
 	argparser.add_argument("-u", action="store_true", help="search for United-operated flights only")
 	argparser.add_argument("-o", metavar="output_file", type=str, help="filename to store results")
@@ -208,14 +237,15 @@ if __name__=='__main__':
 	# run the alerts
 	if args.alert_file:
 		if args.a:
-			S = run_alerts(config,ses=None,filename=args.alert_file,aggregate=True,site_version=site_version,
+			S = run_alerts(config, filename=args.alert_file, aggregate=True,
 				ua_only=ua_only, logging=logging)
+		elif args.m:
+			S = run_mr_search(config, filename=args.alert_file, logging=logging)
 		else:
-			S = run_alerts(config,ses=None,filename=args.alert_file,site_version=site_version,
+			S = run_alerts(config, filename=args.alert_file,
 				ua_only=ua_only, logging=logging)
 	else:
-		S = run_alerts(config,site_version=site_version,
-			ua_only=ua_only, logging=logging)
+		S = run_alerts(config, ua_only=ua_only, logging=logging)
 
 
 

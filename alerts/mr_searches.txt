@@ -1,0 +1,45 @@
+# mr block format:
+# ***
+# search_name	start_date	end_date	buckets*	days*	min_connect_time*	max_connect_time*
+# dep	arr	days_offset*	flightno*	optional*
+# repeat above for each segment
+# separate blocks with ***
+# ***
+# notes:
+#  (*) means optional field
+#  Weekdays is bitmap with first bit Monday
+#  days_offset is measured from departure date of the first segment
+#  "optional" means search can return success even if this segment is not available;
+#     availability on this segment will be reported if found.
+#  search returns AND of all specified buckets
+#
+SIN	2/1/16	6/1/16
+NRT	SIN	+1
+HKG	SFO	+2
+SFO	NRT			Y
+LAX	NRT			Y
+DEN	NRT			Y
+SIN	HKG	+2		Y
+***
+TLV-counterclockwise	4/1/16	12/31/16	R	0010101
+TLV	SFO	+2
+EWR	TLV
+SFO	EWR			Y
+***
+TLV-clockwise	4/1/16	12/31/16	R	0010101
+SFO	TLV
+TLV	EWR	+1	UA91
+EWR	SFO	+2		Y
+***
+SIN-direct	6/1/16	12/31/16
+SIN	SFO	+2
+SFO	HKG
+HKG	SIN	+1
+***
+SYD-clockwise	2/1/16	12/31/16
+LAX	SYD
+SYD	SFO	+2
+***
+SYD-counterclockwise	2/1/16	12/31/16
+SFO	SYD
+SYD	LAX	+2
