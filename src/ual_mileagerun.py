@@ -31,7 +31,8 @@ def parse_mr_file(filename):
 	cur_search_strings = []
 	F = open(filename,'r')
 	for line in F:
-		if line[0] == '#':
+		if line[0] in '#\n':
+			# skip comments and blank lines
 			continue
 		elif line[0] == '*':
 			search_strings.append(cur_search_strings)
@@ -69,7 +70,8 @@ class mr_search_params(object):
 		headers = text_params[0].split('\t')
 		self.name = headers[0]
 		try:
-			self.start_date = max([parser.parse(headers[1]), datetime.today()])
+			# set start date to the later of tomorrow or the given start date
+			self.start_date = max([parser.parse(headers[1]), datetime.today() + timedelta(1)])
 			self.end_date = min([parser.parse(headers[2]), 
 				datetime.today() + timedelta(max_days_out)])
 		except IndexError:
@@ -126,8 +128,9 @@ class mr_search_params(object):
 				try:
 					segs = ses.alert_search(b)
 				except Exception as e:
+					# report an error and go on to the next day
 					errors.append((a,e.args[0]))
-					continue
+					break
 				for seg in segs:
 					try:
 						print(seg.condensed_repr())

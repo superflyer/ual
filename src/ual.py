@@ -149,8 +149,9 @@ def run_mr_search(config, filename='alerts/mr_searches.txt', logging=False):
 	mr_searches = parse_mr_file(filename)
 	print datetime.today().strftime('%c')
 	for m in mr_searches:
+		config['email_subject'] = m.name + ' mileage run search'
 		results, errors = m.search(ses)
-		e, e1 = send_aggregate_results(config, results, errors, m.name + ' mileage run search results')
+		e, e1 = send_aggregate_results(config, results, errors)
 	return(ses)
 
 
