@@ -129,7 +129,7 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 				print(seg)
 				stderr.write('Error getting string representation of segment.\n')
 				continue
-			if max(seg.search_results.values()) > 0:
+			if seg.search_results and max(seg.search_results.values()) > 0:
 				results.append(seg)
 				if not aggregate:
 					subject = config['email_subject'] if config['email_subject'] else 'Results for '+str(a)
