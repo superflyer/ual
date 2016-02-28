@@ -53,17 +53,18 @@ def open_session(config, ua_only=False, logging=False):
 	return ses
 
 
-def send_aggregate_results(config, results=None, errors=None, 
-		subject='SuperFlyer search results found'):
+def send_aggregate_results(config, results=None, errors=None):
+	subject = config['email_subject'] if config['email_subject'] else 'SuperFlyer search'
 	if results:
-		message = '\n'.join([seg.condensed_repr() for seg in sorted(results, key=lambda x: x.depart_datetime)])
-		e = send_email(subject,message,config)
+		subject_results = subject + ' results'
+		message_results = '\n'.join([seg.condensed_repr() for seg in sorted(results, key=lambda x: x.depart_datetime)])
+		e = send_email(subject_results, message_results, config)
 	else:
 		e = 1
 	if errors:
-		subject_err = 'Errors in SuperFlyer search'
+		subject_err = 'Errors in ' + subject
 		message_err = '\n'.join([str(a)+': '+str(e) for a,e in errors])
-		e1 = send_email(subject_err,message_err,config)
+		e1 = send_email(subject_err, message_err, config)
 	else: 
 		e1 = 0
 	return (e, e1)
