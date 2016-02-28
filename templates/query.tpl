@@ -153,7 +153,7 @@
 				</tr>
    				<tr>
     				<td><span>Nonstop</span></td>			    			
-					<td><input type="checkbox" name="nonstop" value="True" {{'checked' if params and params.nonstop else ''}}></td>
+					<td><input type="checkbox" name="nonstop" value="True" {{'checked' if not params or params.nonstop else ''}}></td>
 				</tr>
 
 		   	</table>
