@@ -134,7 +134,10 @@ class Segment(object):
 			for b in self.search_query:
 				bucketname = remapped_classes[b] if b in remapped_classes else b
 				basic_count = self.search_results[b]
-				elite_count = self.search_results[b+'N'] if b in Nclasses and self.flightno[:2]=='UA' else ''
+				try:
+					elite_count = self.search_results[b+'N'] if b in Nclasses and self.flightno[:2]=='UA' else ''
+				except KeyError:
+					elite_count = ''
 				result_list.append(bucketname+str(basic_count)+str(elite_count))
 			return ' '.join(result_list)
 

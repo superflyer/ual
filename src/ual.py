@@ -40,11 +40,11 @@ def configure(config_file='ual.config'):
 	F.close()
 	return config
 
-def open_session(config, ua_only=False, logging=False):
+def open_session(config, ua_only=False, logging=False, search_type=None):
 	# open Session
 	try:
 		ses = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],
-			ua_only=ua_only, logging=logging)
+			ua_only=ua_only, logging=logging, search_type=search_type)
 	except Exception as e:
 		subject = e.args[0]
 		message = 'User: '+config['ual_user']
@@ -71,13 +71,13 @@ def send_aggregate_results(config, results=None, errors=None):
 
 
 def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False, 
-	ua_only=False, logging=False):
+	ua_only=False, logging=False, search_type=None):
 	"""If no output file is specified then send email to address specified in config.
 	   If site_version is specified then the script will repeatedly log in until the specified site version is obtained
 	   (up to max_retries times).
 	"""
 
-	ses = open_session(config, ua_only=ua_only, logging=logging)
+	ses = open_session(config, ua_only=ua_only, logging=logging, search_type=search_type)
 
 	# read alert defs
 	F = open(filename,'r')
@@ -100,6 +100,9 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 				b.depart_datetime = cur_datetime
 				alert_defs.append(b)
 				cur_datetime += timedelta(1)
+		except ValueError as e:
+			stderr.write('Error parsing alert definition: '+line+ '  (' + str(e) + ')\n')
+			continue			
 		except:
 			stderr.write('Error parsing alert definition: '+line)
 			continue
@@ -143,9 +146,9 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 	return(ses)
 
 
-def run_mr_search(config, filename='alerts/mr_searches.txt', logging=False):
+def run_mr_search(config, filename='alerts/mr_searches.txt', logging=False, search_type=None):
 	"""Performs a mileage run search using parameters specified in the given file."""
-	ses = open_session(config, ua_only=True, logging=logging)
+	ses = open_session(config, ua_only=True, logging=logging, search_type=search_type)
 	mr_searches = parse_mr_file(filename)
 	print datetime.today().strftime('%c')
 	for m in mr_searches:
@@ -186,6 +189,11 @@ if __name__=='__main__':
 	version = argparser.add_mutually_exclusive_group()
 	version.add_argument('--force_old_site', action='store_true')
 	version.add_argument('--force_new_site', action='store_true')
+
+	# search for award or upgrades only
+	ual_search_type = argparser.add_mutually_exclusive_group()
+	ual_search_type.add_argument('--upgrade', action='store_true')
+	ual_search_type.add_argument('--award', action='store_true')
 
 	#positional arguments
 	argparser.add_argument('-c', metavar="config_file", default="ual.config", type=str, help="filename containing configuration parameters (default: ual.config)")
@@ -236,18 +244,27 @@ if __name__=='__main__':
 	else:
 		site_version = None
 
+	# Use when looking for partner awards or when expert mode is broken
+	if args.upgrade:
+		ual_search_type = 'Upgrade'
+	elif args.award:
+		ual_search_type = 'Award'
+	else:
+		ual_search_type = None
+
 	# run the alerts
 	if args.alert_file:
 		if args.a:
 			S = run_alerts(config, filename=args.alert_file, aggregate=True,
-				ua_only=ua_only, logging=logging)
+				ua_only=ua_only, logging=logging, search_type=ual_search_type)
 		elif args.m:
-			S = run_mr_search(config, filename=args.alert_file, logging=logging)
+			S = run_mr_search(config, filename=args.alert_file, logging=logging, 
+				search_type=ual_search_type)
 		else:
 			S = run_alerts(config, filename=args.alert_file,
-				ua_only=ua_only, logging=logging)
+				ua_only=ua_only, logging=logging, search_type=ual_search_type)
 	else:
-		S = run_alerts(config, ua_only=ua_only, logging=logging)
+		S = run_alerts(config, ua_only=ua_only, logging=logging, search_type=ual_search_type)
 
 
 

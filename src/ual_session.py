@@ -18,10 +18,20 @@ class ual_session(requests.Session):
 		extract_data, extract_data_old, extract_data_new: parse the response returned by a search into segments and trips
 	"""
 
-	def __init__(self, user=None, pwd=None, ua_only=False, logging=False, useragent=None):
-		""" Initialize session and attempt to log in user."""
+	def __init__(self, user=None, pwd=None, ua_only=False, logging=False, useragent=None,
+					search_type=None):
+		""" Initialize session and attempt to log in user.
+		user: united.com Username
+		pwd: united.com password
+		ua_only: search for united flights only
+		logging: log query results in external files
+		useragent: useragent to spoof for queries
+		search_type: None, Upgrade, or Award (developed for when Expert Mode is broken)
+
+		"""
 		requests.Session.__init__(self)
 		self.logging = logging
+		self.search_type = search_type
 		self.ua_only = ua_only
 		if useragent:
 			self.headers.update({'User-Agent':useragent})
@@ -114,7 +124,7 @@ class ual_session(requests.Session):
 		self.search_results = self.post('https://www.united.com/web/en-US/default.aspx',data=search_params,allow_redirects=True,headers=self.headers)
 
 
-	def search_new(self,params):
+	def search_new(self, params):
 		"""Perform flight search on new united.com.  Response is stored in self.search_results."""
 
 		search_params = new_search_params(params.depart_airport, params.arrive_airport, params.depart_date)
@@ -143,13 +153,14 @@ class ual_session(requests.Session):
 		# get search results
 		# this post is to a json endpoint, the params are returned json-encoded
 		search_params_full = new_search_params_full(params.depart_airport, params.arrive_airport, 
-													params.depart_datetime, self.cart_id, nonstop=params.nonstop)	
+									params.depart_datetime, self.cart_id, nonstop=params.nonstop,
+									search_type = self.search_type)	
 		if self.logging:
 			print("Loading search results")
 		self.headers.update({'Content-Type':'application/json'})
 		self.search_results = self.post('https://www.united.com/ual/en/us/flight-search/book-a-flight/flightshopping/getflightresults/rev',
 			data=search_params_full,
-			allow_redirects=True,headers=self.headers)
+			allow_redirects=True, headers=self.headers)
 		# all of the data is in search_results in nice json form!
 
 
@@ -206,10 +217,18 @@ class ual_session(requests.Session):
 				newseg.arrive_airport = seg['Destination']
 				newseg.aircraft = seg['EquipmentDisclosures']['EquipmentType']
 				newseg.flightno = seg['MarketingCarrier']+seg['FlightNumber']
-				if len(tripdata) == 0 or newseg.flightno != tripdata[-1].flightno:
+				if seg['BookingClassAvailList']:
+					# was: len(tripdata) == 0 or newseg.flightno != tripdata[-1].flightno
 					newseg.availability = ' '.join(seg['BookingClassAvailList'])
-				else: # no availability appears for second leg of '1-stop' flights
-					newseg.availability = ''
+				else: 
+					# no availability appears for second leg of '1-stop' flights
+					#   -- purposely ignoring this edge case for now
+					# parse classes from "Products"
+					found_classes = []
+					for p in seg['Products']:
+						if p['BookingCount'] > 0:
+							found_classes.append(p['BookingCode'] + str(p['BookingCount']))
+					newseg.availability = ' '.join(found_classes)
 				if seg['OperatingCarrier'] != seg['MarketingCarrier']:
 					newseg.flightno += ' (' + seg['OperatingCarrier'] + ')'
 				newseg.depart_date, newseg.depart_time = seg['DepartDateTime'].split(' ')

@@ -5,9 +5,11 @@ from ual import *
 def test(num_tests=1):
 	config = configure('../ual.config')
 	results = []
-	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],logging=True)
-	Plist = [['6/21/16','SFO','MSP',True],
-			 ['2/22/16','OGG','SFO',True],
+	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],logging=True,
+		search_type='Award')
+	Plist = [['1/9/17','IAD','LHR',True],
+			 ['5/17/16','ORD','MSP',True],
+			 ['6/21/16','SFO','MSP',True],
 			 ['2/22/16','SFO','FRA',True],
 			 ['2/22/16','SFO','YUL',False],
 			 ['5/22/16','IAD','DXB',False],
@@ -20,7 +22,9 @@ def test(num_tests=1):
 		S.search(P)
 		S.extract_data()
 		F = codecs.open('searches/data'+Plist[i][1]+Plist[i][2]+str(i),'w','utf-8')
-		F.write(S.trips)
+		for trip in S.trips:
+			for seg in trip:
+				F.write(str(seg) + '\n')
 		F.close()
 		results.append(S.basic_search(P))
 	return S
@@ -55,6 +59,6 @@ def mr_test(filename):
 	S = run_mr_search(config, filename)
 
 if __name__ == '__main__':
-	mr_test('alerts/mr_searches.txt')
-	# X = test()
+	# mr_test('alerts/mr_searches.txt')
+	X = test()
 	# T = test_parsing('searches/SFOFRA1.json')

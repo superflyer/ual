@@ -140,7 +140,10 @@ def new_search_params(origin, destination, depart_date):
 	}
 	return params
 
-def new_search_params_full(origin, destination, depart_datetime, cart_id, nonstop=False):
+def new_search_params_full(origin, destination, depart_datetime, cart_id, nonstop=False,
+							search_type = None):
+	''' possible search types: General, Upgrade, Award '''
+
 	params_json = '{"Revise":false,"UnaccompaniedMinorDisclamer":false,"searchTypeMain":"oneWay","Origin":"SFO","Destination":"EWR","DepartDate":"Oct 12, 2015","ReturnDate":"Oct 12, 2015","awardTravel":false,"MaxTrips":null,"numberOfTravelers":1,"numOfAdults":1,"numOfSeniors":0,"numOfChildren03":0,"numOfChildren02":0,"numOfChildren01":0,"numOfInfants":0,"numOfLapInfants":0,"travelerCount":1,"IsUnAccompaniedMinor":false,"MilitaryTravelType":null,"MilitaryOrGovernmentPersonnelStateCode":null,"tripLength":0,"flexMonth":null,"flexMonth2":null,"SortType":null,"cboMiles":null,"cboMiles2":null,"Trips":[{"DestinationAll":false,"returnARC":null,"connections":null,"nonStopOnly":false,"nonStop":true,"oneStop":true,"twoPlusStop":true,"DepartDate":"Oct 12, 2015","ReturnDate":null,"PetIsTraveling":false,"PreferredTime":"","PreferredTimeReturn":null,"Destination":"EWR","Index":1,"Origin":"SFO","Selected":false,"FormatedDepartDate":"Mon, Oct 12, 2015","OriginCorrection":null,"DestinationCorrection":null,"OriginAll":false}],"nonStopOnly":false,"CalendarOnly":false,"InitialShop":true,"IsSearchInjection":false,"CartId":"BC8A9749-3ACF-4025-861A-6A3A596ADB7C","CellIdSelected":null,"BBXSession":null,"SolutionSetId":null,"SimpleSearch":true,"RequeryForUpsell":false,"RequeryForPOSChange":false,"ShowClassOfServiceListPreference":true,"SelectableUpgradesOriginal":null,"RegionalPremierUpgradeBalance":0,"GlobalPremierUpgradeBalance":0,"RegionalPremierUpgrades":null,"GlobalPremierUpgrades":null,"FormattedAccountBalance":null,"GovType":null,"TripTypes":1,"flexible":false,"flexibleAward":false,"FlexibleDaysAfter":0,"FlexibleDaysBefore":0,"hiddenPreferredConn":null,"hiddenUnpreferredConn":null,"carrierPref":0,"chkFltOpt":0,"portOx":0,"travelwPet":0,"NumberOfPets":0,"cabinType":0,"cabinSelection":"ECONOMY","awardCabinType":0,"FareTypes":0,"FareWheelOnly":false,"buyUpgrade":0,"offerCode":null,"TVAOfferCodeLastName":null,"ClassofService":null,"UpgradeType":null,"BillingAddressCountryCode":null,"BillingAddressCountryDescription":null,"IsPassPlusFlex":false,"IsPassPlusSecure":false,"IsOffer":false,"IsMeetingWorks":false,"IsValidPromotion":false,"CalendarDateChange":null,"CoolAwardSpecials":false,"LastResultId":null,"IncludeLmx":false}'
 	params = json.loads(params_json)
 
@@ -160,6 +163,13 @@ def new_search_params_full(origin, destination, depart_datetime, cart_id, nonsto
 
 	# set Cart ID
 	params['CartId'] = cart_id
+
+	# search for award or upgrade space only
+	# use when expert mode is broken
+	if search_type == "Upgrade":
+		params['UpgradeType'] = "MUA"
+	elif search_type == "Award":
+		params["awardTravel"] = True
 
 	# set nonstop parameter -- this doesn't seem to work.
 	if nonstop:

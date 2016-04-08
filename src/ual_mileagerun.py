@@ -7,6 +7,7 @@ default_buckets = 'R'
 from dateutil import parser
 from datetime import datetime, timedelta
 from ual_functions import *
+import sys
 
 
 def parse_mr_file(filename):
@@ -136,9 +137,9 @@ class mr_search_params(object):
 						print(seg.condensed_repr())
 					except:
 						print(seg)
-						stderr.write('Error getting string representation of segment.\n')
-						continue
-					if min(seg.search_results.values()) > 0:
+						sys.stderr.write('Error getting string representation of segment.\n')
+						raise
+					if seg.search_results and min(seg.search_results.values()) > 0:
 						tmp_results.append(seg)
 				# if not optional and not found, abort
 				if not a.optional and len(tmp_results) == 0:

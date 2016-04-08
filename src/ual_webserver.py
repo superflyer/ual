@@ -104,7 +104,8 @@ def query_submit():
 		if S.last_login_time < datetime.now() - timedelta(minutes=30):
 			config = configure(args.c)
 			for i in range(max_retries):
-				S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
+				S = ual_session(config['ual_user'], config['ual_pwd'], useragent=config['spoofUA'],
+							search_type=ual_search_type)
 				if not site_version or S.site_version == site_version:
 					break
 		result = S.basic_search(params)
@@ -133,6 +134,11 @@ if __name__=='__main__':
 	version.add_argument('--force_old_site', action='store_true')
 	version.add_argument('--force_new_site', action='store_true')
 
+	# search for award or upgrades only
+	ual_search_type = argparser.add_mutually_exclusive_group()
+	ual_search_type.add_argument('--upgrade', action='store_true')
+	ual_search_type.add_argument('--award', action='store_true')
+
 	args = argparser.parse_args()
 
 	# configure the site version, hold it in a global variable
@@ -143,12 +149,22 @@ if __name__=='__main__':
 	else:
 		site_version = None
 
+	# Use when looking for partner awards or when expert mode is broken; hold this in a global variable
+	if args.upgrade:
+		ual_search_type = 'Upgrade'
+	elif args.award:
+		ual_search_type = 'Award'
+	else:
+		ual_search_type = None
+
+
 	# global variable to hold session
 	max_retries = 10
 	if not args.t:
 		config = configure(args.c)
 		for i in range(max_retries):
-			S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'])
+			S = ual_session(config['ual_user'], config['ual_pwd'], useragent=config['spoofUA'],
+					search_type=ual_search_type)
 			if not site_version or S.site_version == site_version:
 				break
 
