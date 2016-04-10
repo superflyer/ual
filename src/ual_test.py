@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 
 from ual import *
+import json
 
-def test(num_tests=1):
+def test(num_tests=1, search_type=None):
 	config = configure('../ual.config')
 	results = []
 	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],logging=True,
-		search_type='Award')
-	Plist = [['1/9/17','IAD','LHR',True],
+		search_type=search_type)
+	Plist = [['12/20/16','SFO','EWR',True],
+			 ['6/29/16','SFO','NRT',True],
 			 ['5/17/16','ORD','MSP',True],
 			 ['6/21/16','SFO','MSP',True],
 			 ['2/22/16','SFO','FRA',True],
@@ -52,6 +54,13 @@ def test_parsing(filename):
 
 	return S.trips
 
+def load_search_results(filename):
+	F = open(filename)
+	raw_json = F.read()
+	F.close()
+	data = json.loads(raw_json)
+	return data
+
 def mr_test(filename):
 	config = configure('ual.config')
 	P = parse_mr_file(filename)
@@ -60,5 +69,6 @@ def mr_test(filename):
 
 if __name__ == '__main__':
 	# mr_test('alerts/mr_searches.txt')
-	X = test()
+	X = test(search_type='Upgrade')
+	Y = load_search_results('response_logs/search.html')
 	# T = test_parsing('searches/SFOFRA1.json')

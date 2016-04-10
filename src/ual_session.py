@@ -71,7 +71,7 @@ class ual_session(requests.Session):
 				failed = True
 				self.login_error = "Username not on landing page."
 			if logging or failed:
-				F = codecs.open('signin.html','w','utf-8')
+				F = codecs.open('response_logs/signin.html','w','utf-8')
 				F.write(self.signin.text)
 				F.close()
 			if failed:
@@ -107,7 +107,7 @@ class ual_session(requests.Session):
 			R = self.search_new(params)
 		if self.logging:
 			print("Received " + str(len(self.search_results.text)) + " characters")
-			F = codecs.open('search.html','w','utf-8')
+			F = codecs.open('response_logs/search.html','w','utf-8')
 			F.write(self.search_results.text)
 			F.close()
 		return R
@@ -139,7 +139,7 @@ class ual_session(requests.Session):
 				data=search_params,allow_redirects=True,headers=self.headers)
 			if self.logging:
 				print("Received " + str(len(self.search_page.text)) + " characters")
-				F = codecs.open('search_page.html','w','utf-8')
+				F = codecs.open('response_logs/search_page.html','w','utf-8')
 				F.write(self.search_page.text)
 				F.close()
 
@@ -226,7 +226,10 @@ class ual_session(requests.Session):
 					# parse classes from "Products"
 					found_classes = []
 					for p in seg['Products']:
-						if p['BookingCount'] > 0:
+						if ('SURP' in p['ProductType'] or 'DISP' in p['ProductType']) and \
+								p['BookingCode']:
+							found_classes.append(p['BookingCode'] + str(1))
+						elif p['BookingCode'] and p['BookingCount'] > 0:
 							found_classes.append(p['BookingCode'] + str(p['BookingCount']))
 					newseg.availability = ' '.join(found_classes)
 				if seg['OperatingCarrier'] != seg['MarketingCarrier']:

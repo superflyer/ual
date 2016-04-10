@@ -138,7 +138,7 @@ class mr_search_params(object):
 					except:
 						print(seg)
 						sys.stderr.write('Error getting string representation of segment.\n')
-						raise
+						continue
 					if seg.search_results and min(seg.search_results.values()) > 0:
 						tmp_results.append(seg)
 				# if not optional and not found, abort

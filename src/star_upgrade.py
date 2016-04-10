@@ -39,7 +39,7 @@ def star_upgrade(config,logging=False):
 	print upgrade.status_code
 	print upgrade.url
 	if logging:
-		F = codecs.open('upgrade.html','w','utf-8')
+		F = codecs.open('response_logs/upgrade.html','w','utf-8')
 		F.write(upgrade.text)
 		F.close()
 	return upgrade.text
