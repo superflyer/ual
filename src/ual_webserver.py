@@ -40,7 +40,7 @@ def query_form():
 @app.route('/searchresults', method='POST')
 def query_submit():
 	global S
-	global site_version, max_retries
+	global site_version, max_retries, ual_search_type
 
 	depart_airport = request.forms.get('departAirport')
 	arrive_airport = request.forms.get('arriveAirport')
@@ -101,13 +101,23 @@ def query_submit():
 				if params.buckets:
 					seg.search_buckets(params.buckets)
 	else:
-		if S.last_login_time < datetime.now() - timedelta(minutes=30):
+		# expert mode broken and current search differs from last search
+		if ual_search_type == "No-Expert":
+			current_search_type = 'Award' if 'O' in params.buckets or 'X' in params.buckets \
+				or 'I' in params.buckets else 'Upgrade'
+			if current_search_type != S.last_search_type:
+				config = configure(args.c)
+				S = ual_session(config['ual_user'], config['ual_pwd'], 
+						useragent=config['spoofUA'], search_type=current_search_type)
+				S.last_search_type = current_search_type
+
+		# last session timed out
+		if S.last_login_time < datetime.now() - timedelta(minutes=30) or ual_search_type == "No-expert":
 			config = configure(args.c)
-			for i in range(max_retries):
-				S = ual_session(config['ual_user'], config['ual_pwd'], useragent=config['spoofUA'],
-							search_type=ual_search_type)
-				if not site_version or S.site_version == site_version:
-					break
+			S = ual_session(config['ual_user'], config['ual_pwd'], useragent=config['spoofUA'],
+					search_type=S.last_search_type)
+
+		# do the search
 		result = S.basic_search(params)
 		# can't be sure that nonstop flag works
 		if params.nonstop:
@@ -129,44 +139,37 @@ if __name__=='__main__':
 	argparser.add_argument('-c', metavar="config_file", default="ual.config", type=str, help="filename containing configuration parameters (default: ual.config)")
 	argparser.add_argument('-p', metavar="port", default="80", type=int, help="port on which to run web server (default: 80)")
 
-	# site version
-	version = argparser.add_mutually_exclusive_group()
-	version.add_argument('--force_old_site', action='store_true')
-	version.add_argument('--force_new_site', action='store_true')
+	# site version -- deprecated
+	# version = argparser.add_mutually_exclusive_group()
+	# version.add_argument('--force_old_site', action='store_true')
+	# version.add_argument('--force_new_site', action='store_true')
 
 	# search for award or upgrades only
 	ual_search_type = argparser.add_mutually_exclusive_group()
-	ual_search_type.add_argument('--upgrade', action='store_true')
-	ual_search_type.add_argument('--award', action='store_true')
+	ual_search_type.add_argument('--noexpert', action='store_true')
 
 	args = argparser.parse_args()
 
-	# configure the site version, hold it in a global variable
-	if args.force_old_site:
-		site_version = "Old"
-	elif args.force_new_site:
-		site_version = "New"
-	else:
-		site_version = None
+	# configure the site version, hold it in a global variable -- deprecated
+	# if args.force_old_site:
+	# 	site_version = "Old"
+	# elif args.force_new_site:
+	# 	site_version = "New"
+	# else:
+	# 	site_version = None
 
 	# Use when looking for partner awards or when expert mode is broken; hold this in a global variable
-	if args.upgrade:
-		ual_search_type = 'Upgrade'
-	elif args.award:
-		ual_search_type = 'Award'
+	if args.noexpert:
+		ual_search_type = 'No-Expert'
 	else:
 		ual_search_type = None
 
-
 	# global variable to hold session
-	max_retries = 10
 	if not args.t:
 		config = configure(args.c)
-		for i in range(max_retries):
-			S = ual_session(config['ual_user'], config['ual_pwd'], useragent=config['spoofUA'],
-					search_type=ual_search_type)
-			if not site_version or S.site_version == site_version:
-				break
+		S = ual_session(config['ual_user'], config['ual_pwd'], useragent=config['spoofUA'],
+				search_type=ual_search_type)
+		S.last_search_type = None
 
 	if args.l:
 		run(app, host='localhost', port=args.p, reloader=True)
