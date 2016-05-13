@@ -42,7 +42,7 @@ class ual_session(requests.Session):
 		self.home = self.get('https://www.united.com',allow_redirects=True,headers=self.headers)
 		if "Find a Reservation by Confirmation Number" in self.home.text:
 			self.site_version = "Old"
-		elif "Welcome to the new united.com" in self.home.text:
+		elif "Welcome to united.com" in self.home.text:
 			self.site_version = "New"
 		else:
 			raise Exception("Unrecognized version of united.com")
