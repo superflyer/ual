@@ -228,9 +228,9 @@ class ual_session(requests.Session):
 					for p in seg['Products']:
 						if ('SURP' in p['ProductType'] or 'DISP' in p['ProductType']) and \
 								p['BookingCode']:
-							found_classes.append([p['BookingCode']] + str(1))
+							found_classes.append(p['BookingCode'] + str(1))
 						elif p['BookingCode'] and p['BookingCount'] > 0:
-							found_classes.append([p['BookingCode']] + str(p['BookingCount']))
+							found_classes.append(p['BookingCode'] + str(p['BookingCount']))
 					newseg.availability = found_classes
 				if seg['OperatingCarrier'] != seg['MarketingCarrier']:
 					newseg.flightno += ' (' + seg['OperatingCarrier'] + ')'

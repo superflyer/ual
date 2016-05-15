@@ -3,12 +3,13 @@
 from ual import *
 import json
 
-def test(num_tests=1, search_type=None):
+def test(num_tests=1, search_type='Award'):
 	config = configure('../ual.config')
 	results = []
 	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],logging=True,
 		search_type=search_type)
-	Plist = [['12/20/16','SFO','EWR',True,'JY'],
+	Plist = [['9/5/16','IAH','FRA',True,''],
+			 ['12/20/16','SFO','EWR',True,'JY'],
 			 ['6/29/16','SFO','NRT',True],
 			 ['5/17/16','ORD','MSP',True],
 			 ['6/21/16','SFO','MSP',True],
