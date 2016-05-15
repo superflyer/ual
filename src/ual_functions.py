@@ -103,14 +103,14 @@ class Segment(object):
 		self.arrive_time = None
 		self.arrive_date = None
 		self.aircraft = None
-		self.availability = 'NA'
+		self.availability = ['NA']
 		self.flightno = None
 		self.search_results = None
 		self.search_query = None
 	def __repr__(self):
 		paramlist=[self.flightno,self.depart_date,self.depart_airport,self.depart_time,
 		self.arrive_airport,self.arrive_date,self.arrive_time,self.aircraft,
-		self.availability.strip()]
+		' '.join(self.availability)]
 		return(' '.join(paramlist))
 	def __str__(self):
 		return self.__repr__()
@@ -147,15 +147,15 @@ class Segment(object):
 			# 	(str(self.search_results[b+'N']) if b in Nclasses else '')
 			#  for b in self.search_query])
 
-		elif self.search_query=='':
-			return 'NA'
+#		elif self.search_query=='':
+#			return 'NA'
 		else:
-			return self.availability.strip()
+			return ' '.join(self.availability)
 
 	def condensed_repr(self):
 		self.format_deptime()
 		self.format_arrtime()
-		output_params = [self.depart_datetime.strftime('%m/%d/%y').strip('0'),
+		output_params = [self.depart_datetime.strftime('%a %m/%d/%y').strip('0'),
 			self.flightno,
 			format_airport(self.depart_airport),
 			self.depart_datetime.strftime('%H:%M'),
@@ -165,22 +165,23 @@ class Segment(object):
 			self.bucket_repr()]
 		return ' '.join(output_params)
 
-	def search_buckets(self,buckets):
-		results = {}
+	def search_buckets(self,buckets=None):
 		self.search_query = ''
-		for b in buckets.upper():
-			if b in remapped_classes:
-				inv = re.match('.*'+remapped_classes[b]+'([0-9]).*',self.availability)
-			else:
-				inv = re.match('.*'+b+'([0-9]).*',self.availability)
-			if inv:
-				results[b] = int(inv.group(1))
-				self.search_query += b
-			# look for elite availability on UA flights
-			if b in Nclasses:
-				invN = re.match('.*'+b+'N([0-9]).*',self.availability)
-				if invN:
-					results[b+'N'] = int(invN.group(1))
+		if buckets:
+			results = {}
+			for b in buckets.upper():
+				bucket_code = remapped_classes[b] if b in remapped_classes else b
+				found_classes = [c[:-1] for c in self.availability]
+				try:
+					results[b] = int(self.availability[found_classes.index(bucket_code)][-1])
+					if b in Nclasses:  			# look for elite availability on UA flights
+						results[b+'N'] = int(self.availability[found_classes.index(bucket_code+'N')][-1])
+					self.search_query += b
+				except ValueError:
+					# no result found
+					pass
+		else:
+			results = {x[:-1] : int(x[-1]) for x in self.availability}
 		self.search_results = results
 
 

@@ -14,7 +14,7 @@ class ual_session(requests.Session):
 		search, search_old, search_new: conduct a flight search
 		alert_search: search and extract data for a given alert query, return results matching the specified buckets
 		basic_search: search and extract data for a given query, return all results
-		long_search: perform alert search over a range of dates
+		long_search: perform alert search over a range of dates -- DEPRECATED
 		extract_data, extract_data_old, extract_data_new: parse the response returned by a search into segments and trips
 	"""
 
@@ -219,7 +219,7 @@ class ual_session(requests.Session):
 				newseg.flightno = seg['MarketingCarrier']+seg['FlightNumber']
 				if seg['BookingClassAvailList']:
 					# was: len(tripdata) == 0 or newseg.flightno != tripdata[-1].flightno
-					newseg.availability = ' '.join(seg['BookingClassAvailList'])
+					newseg.availability = seg['BookingClassAvailList']
 				else: 
 					# no availability appears for second leg of '1-stop' flights
 					#   -- purposely ignoring this edge case for now
@@ -228,10 +228,10 @@ class ual_session(requests.Session):
 					for p in seg['Products']:
 						if ('SURP' in p['ProductType'] or 'DISP' in p['ProductType']) and \
 								p['BookingCode']:
-							found_classes.append(p['BookingCode'] + str(1))
+							found_classes.append([p['BookingCode']] + str(1))
 						elif p['BookingCode'] and p['BookingCount'] > 0:
-							found_classes.append(p['BookingCode'] + str(p['BookingCount']))
-					newseg.availability = ' '.join(found_classes)
+							found_classes.append([p['BookingCode']] + str(p['BookingCount']))
+					newseg.availability = found_classes
 				if seg['OperatingCarrier'] != seg['MarketingCarrier']:
 					newseg.flightno += ' (' + seg['OperatingCarrier'] + ')'
 				newseg.depart_date, newseg.depart_time = seg['DepartDateTime'].split(' ')
@@ -294,7 +294,7 @@ class ual_session(requests.Session):
 				print e
 				continue
 			for seg in search_results:
-				if sum(seg.search_results.values()) > 0:
+				if not buckets or sum(seg.search_results.values()) > 0:
 					print(seg.condensed_repr())
 					found_segs.append(seg)
 			cur_datetime += timedelta(1)

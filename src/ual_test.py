@@ -8,7 +8,7 @@ def test(num_tests=1, search_type=None):
 	results = []
 	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],logging=True,
 		search_type=search_type)
-	Plist = [['12/20/16','SFO','EWR',True],
+	Plist = [['12/20/16','SFO','EWR',True,'JY'],
 			 ['6/29/16','SFO','NRT',True],
 			 ['5/17/16','ORD','MSP',True],
 			 ['6/21/16','SFO','MSP',True],
@@ -20,7 +20,7 @@ def test(num_tests=1, search_type=None):
 			 ['3/22/16','EWR','BOM',False],
 			 ['3/22/16','EWR','BOM',True]]
 	for i in range(min(num_tests,len(Plist))):
-		P = alert_params(Plist[i][0],Plist[i][1],Plist[i][2],nonstop=Plist[i][3])
+		P = alert_params(Plist[i][0],Plist[i][1],Plist[i][2],nonstop=Plist[i][3],buckets=Plist[i][4])
 		S.search(P)
 		S.extract_data()
 		F = codecs.open('searches/data'+Plist[i][1]+Plist[i][2]+str(i),'w','utf-8')
@@ -29,7 +29,7 @@ def test(num_tests=1, search_type=None):
 				F.write(str(seg) + '\n')
 		F.close()
 		results.append(S.basic_search(P))
-	return S
+	return S, results
 
 def scratch():
 	x = X[0][0]
@@ -69,6 +69,6 @@ def mr_test(filename):
 
 if __name__ == '__main__':
 	# mr_test('alerts/mr_searches.txt')
-	X = test(search_type='Upgrade')
+	X, results = test()
 	Y = load_search_results('response_logs/search.html')
 	# T = test_parsing('searches/SFOFRA1.json')

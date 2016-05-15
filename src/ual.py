@@ -116,6 +116,7 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 		try:
 			segs = ses.alert_search(a)
 		except Exception as e:
+			raise
 			if aggregate:
 				errors.append((a,e.args[0]))
 			else:
@@ -123,7 +124,7 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 				message = 'Query: '+str(a)
 				stderr.write(subject+'\n'+message+'\n')
 				if config['alert_recipient'] != config['sms_alerts']:
-					# don't send error messates via sms
+					# don't send error messages via sms
 					send_email(subject,message,config)
 			continue
 		for seg in segs:
