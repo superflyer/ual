@@ -61,7 +61,7 @@ def send_aggregate_results(config, results=None, errors=None):
 		e = send_email(subject_results, message_results, config)
 	else:
 		e = 1
-	if errors:
+	if errors and not config['suppress_errors']:
 		subject_err = 'Errors in ' + subject
 		message_err = '\n'.join([str(a)+': '+str(e) for a,e in errors])
 		e1 = send_email(subject_err, message_err, config)
@@ -122,8 +122,7 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 				subject = e.args[0]
 				message = 'Query: '+str(a)
 				stderr.write(subject+'\n'+message+'\n')
-				if config['alert_recipient'] != config['sms_alerts']:
-					# don't send error messages via sms
+				if not config['suppress_errors']:
 					send_email(subject,message,config)
 			continue
 		for seg in segs:
@@ -179,6 +178,7 @@ if __name__=='__main__':
 	argparser.add_argument("-u", action="store_true", help="search for United-operated flights only")
 	argparser.add_argument("-o", metavar="output_file", type=str, help="filename to store results")
 	argparser.add_argument('-s', metavar="email_subject", type=str, help="subject to be sent in emails")
+	argparser.add_argument("--suppress_errors", action="store_true", help="don't send error emails")
 
 	# delivery methods
 	recipient = argparser.add_mutually_exclusive_group()
@@ -205,36 +205,25 @@ if __name__=='__main__':
 	config = configure(args.c)
 
 	# configure to send text mesages
-	if args.t:
-		config['alert_recipient'] = config['sms_alerts']
+	if args.t: config['alert_recipient'] = config['sms_alerts']
 	
 	# configure custom email address
-	if args.e:
-		config['alert_recipient'] = args.e
+	if args.e: config['alert_recipient'] = args.e
 
 	# configure output file
-	if args.o:
-		config['output_file'] = args.o
-	else:
-		config['output_file'] = None
-
+	config['output_file'] = args.o if args.o else None
+		
 	# configure email subject
-	if args.s:
-		config['email_subject'] = args.s
-	else:
-		config['email_subject'] = None
-
+	config['email_subject'] = args.s if args.s else None
+		
 	# set logging
-	if args.v:
-		logging=True
-	else:
-		logging=False
+	logging = args.v
 
 	# set ua-only flag:
-	if args.u:
-		ua_only=True
-	else:
-		ua_only=False
+	ua_only = args.u
+
+	# suppress errors
+	config['suppress_errors'] = args.suppress_errors
 
 	# configure the site version
 	if args.force_old_site:
