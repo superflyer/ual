@@ -69,7 +69,7 @@ def mr_test(filename):
 	S = run_mr_search(config, filename)
 
 if __name__ == '__main__':
-	# mr_test('alerts/mr_searches.txt')
-	X, results = test()
-	Y = load_search_results('response_logs/search.html')
+	mr_test('alerts/mr_searches.txt')
+	#X, results = test()
+	#Y = load_search_results('response_logs/search.html')
 	# T = test_parsing('searches/SFOFRA1.json')
