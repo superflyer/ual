@@ -107,6 +107,7 @@ class Segment(object):
 		self.flightno = None
 		self.search_results = None
 		self.search_query = None
+		self.search_datetime = None
 	def __repr__(self):
 		paramlist=[self.flightno,self.depart_date,self.depart_airport,self.depart_time,
 		self.arrive_airport,self.arrive_date,self.arrive_time,self.aircraft,
@@ -116,17 +117,22 @@ class Segment(object):
 		return self.__repr__()
 	def format_deptime(self):
 		self.depart_datetime = parser.parse(self.depart_date+' '+self.depart_time)
+		if self.depart_datetime.day == self.search_datetime.day:
+			self.depart_offset = ''
+		else:
+			self.depart_offset = '+' + str((self.depart_datetime - self.search_datetime).days)
 
 #		return self.depart_datetime.strftime('%m/%d/%y %H:%M')
 
 	def format_arrtime(self):
 		self.arrive_datetime = parser.parse(self.arrive_date+' '+self.arrive_time)
 		if self.depart_date:
-			self.day_offset=''
-			if self.depart_datetime.day != self.arrive_datetime.day:
-				for offset in ['-1','+1','+2']:
-					if self.arrive_datetime.day == (self.depart_datetime+timedelta(days=int(offset))).day:
-						self.day_offset = offset
+			if self.arrive_datetime.day == self.search_datetime.day:
+				self.arrive_offset = ''
+			elif (self.arrive_datetime - self.search_datetime).days > 0:
+				self.arrive_offset = '+' + str((self.arrive_datetime - self.search_datetime).days)
+			elif (self.arrive_datetime - self.search_datetime).days < 0:
+				self.arrive_offset = str((self.arrive_datetime - self.search_datetime).days)
 
 	def bucket_repr(self):
 		if self.search_query:
@@ -155,12 +161,13 @@ class Segment(object):
 	def condensed_repr(self):
 		self.format_deptime()
 		self.format_arrtime()
-		output_params = [self.depart_datetime.strftime('%a %m/%d/%y').strip('0'),
+		output_params = [self.search_datetime.strftime('%a'),
+			self.search_datetime.strftime('%m/%d/%y').strip('0'),
 			self.flightno,
 			format_airport(self.depart_airport),
-			self.depart_datetime.strftime('%H:%M'),
+			self.depart_datetime.strftime('%H:%M')+self.depart_offset,
 			format_airport(self.arrive_airport),
-			self.arrive_datetime.strftime('%H:%M')+self.day_offset,
+			self.arrive_datetime.strftime('%H:%M')+self.arrive_offset,
 			format_aircraft(self.aircraft),
 			self.bucket_repr()]
 		return ' '.join(output_params)

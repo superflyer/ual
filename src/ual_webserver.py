@@ -4,7 +4,7 @@ from bottle import route, run, template, Bottle
 from bottle import get, post, request
 from bottle import static_file
 from time import localtime, strftime
-from datetime import *
+from datetime import datetime, timedelta
 from dateutil import parser
 from re import search
 import sys
@@ -21,7 +21,7 @@ def index(name='World'):
 	return template('<b>Hello {{name}}</b>!', name=name)
 
 
-@app.route('/include/images/enhanced-mobile/<filename>')
+#@app.route('/include/images/enhanced-mobile/<filename>')
 @app.route('/static/<filename>')
 def server_static(filename):
 	return static_file(filename, root='static')
@@ -128,6 +128,7 @@ def query_submit():
 	sys.stdout.write(strftime("%Y-%m-%d %H:%M:%S", localtime())+'\n')
 	sys.stdout.flush()
 	
+	params.timedelta = timedelta
 	return template("templates/results", params=params, data=sorted_result)
 
 if __name__=='__main__':

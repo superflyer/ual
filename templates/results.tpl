@@ -2,6 +2,16 @@
   	<title>SuperFlyer Mobile</title>
   	<link href="static/superflyer.css" type="text/css" rel="stylesheet"/>
   	<script type="text/javascript" src="/static/superflyer.js?v=null"></script>
+
+	<script type="text/javascript">
+		function searchPrev() {
+			document.previousDay.submit();
+		}
+		function searchNext() {
+			document.nextDay.submit();
+		}
+	</script>
+
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   	
   	<meta name="format-detection" content="telephone=no">
@@ -68,11 +78,12 @@
 		</div>
 		<div id="subHeaderContent">
   		<div>
-			{{params.depart_airport.upper()}} to {{params.arrive_airport.upper()}} on {{params.depart_date}}
+			{{params.depart_airport.upper()}} to {{params.arrive_airport.upper()}} 
+			on {{params.depart_datetime.strftime('%a')}} 
+			{{params.depart_datetime.strftime('%m/%d/%y').strip('0')}}
 		</div>
 		<div>
-					Flying
-					<b>UA </b>
+					<!-- Flying <b>UA </b> -->
 					{{'Nonstop' if params.nonstop else ''}}
 		</div>
 		<div>
@@ -89,128 +100,76 @@
 	<div id="errorContainer" class="info-message">
 	</div>
  	<div id="content">
-	<form action="/mobile/flightAvailabilityResults.do" method="post" name="flightAvailabilityResultsForm">
-						% for trip in data:
-						<div class="form-result">
-							<span class="form-results-expanded-state">Expanded</span>
-								% for seg in trip:
-								<div class="form-results-overview">
-									<table>
-										<tr>
-											<td class="description">{{seg.flightno}}</td>
-											<td class="info">
-												{{seg.depart_airport}} {{seg.depart_datetime.strftime('%H:%M')}} &rarr; 
-												{{seg.arrive_airport}} {{seg.arrive_datetime.strftime('%H:%M')+seg.day_offset}}
-												<div class="info-subheader">{{seg.bucket_repr()}} 
-												</div>
-											</td>
-										</tr>
-									</table>
-								</div>
-								<div class="form-results-details">
-									<table>
-										<tr>
-											<td class="description"></td>
-											<td class="info"><label>Aircraft: </label>{{seg.aircraft}}</td>
-										</tr>
-										<tr>
-											<td colspan="2">
-												<div class="links">
-													<a href="flightDetails.do?airlineCode=UA&flightNumber=1038&departDate=12/24/13&passthrough=true">Flight Details</a> &middot;
-															<a href="seatMap.do?airlineCode=UA&flightNumber=1038&departDate=12/24/13&departingAirportCode=SFO&arrivingAirportCode=LAX&refine=true">Seat Map</a>  &middot;
-													<a href="createFlightAlert.do?departingAirportCode=SFO&arrivingAirportCode=LAX&departDate=12/24/13&departTimestamp=12/24/13 6:19 AM&departTimeZone=PST&airlineCode=UA&flightNumber=1038&pos=&refine=true">Create Alert</a>
-												</div>
-											</td>
-										</tr>
-									</table>
-								</div>
-								% end
-						</div>
-						% end
+	<!-- <form action="/mobile/flightAvailabilityResults.do" method="post" name="flightAvailabilityResultsForm"> -->
+			% for trip in data:
+			<div class="form-result">
+				<span class="form-results-expanded-state">Expanded</span>
+					% for seg in trip:
+					<div class="form-results-overview">
+						<table>
+							<tr>
+								<td class="description">{{seg.flightno}}
+									<div class="info-subheader">
+									{{seg.aircraft}}
+									</div>
+								</td>
+								<td class="info">
+									{{seg.depart_airport}} 
+									{{seg.depart_datetime.strftime('%H:%M')+seg.depart_offset}} &rarr; 
+									{{seg.arrive_airport}} {{seg.arrive_datetime.strftime('%H:%M')+seg.arrive_offset}}
+									<div class="info-subheader">{{seg.bucket_repr()}} 
+									</div>
+								</td>
+							</tr>
+						</table>
+					</div>
+					% end
+			</div>
+			% end
+
+		<form action="/searchresults" name="previousDay" method="post">
+			<input type="hidden" name="departAirport" value={{params.depart_airport.upper()}}>
+			<input type="hidden" name="arriveAirport" value={{params.arrive_airport.upper()}}>
+			<input type="hidden" name="departMonth" 
+				value={{(params.depart_datetime + params.timedelta(days=-1)).strftime('%m')}}>
+			<input type="hidden" name="departDay" 
+				value={{(params.depart_datetime + params.timedelta(days=-1)).strftime('%d')}}>
+			<input type="hidden" name="airlineCode" value="UA">
+			<input type="hidden" name="flightNumber" value={{params.flightno}}>
+			<input type="hidden" name="nonstop" value={{params.nonstop if params.nonstop else False}}>
+			<input type="hidden" name="otherCheck" value={{True if params.buckets else False}}>
+			<input type="hidden" name="otherClassCodes" value={{params.buckets}}>
+			<input type="hidden" name="all_classes" value={{True if not params.buckets else False}}>
+		</form>
+
+		<form action="/searchresults" name="nextDay" method="post">
+			<input type="hidden" name="departAirport" value={{params.depart_airport.upper()}}>
+			<input type="hidden" name="arriveAirport" value={{params.arrive_airport.upper()}}>
+			<input type="hidden" name="departMonth" 
+				value={{(params.depart_datetime + params.timedelta(days=1)).strftime('%m')}}>
+			<input type="hidden" name="departDay" 
+				value={{(params.depart_datetime + params.timedelta(days=1)).strftime('%d')}}>
+			<input type="hidden" name="buckets" value={{params.buckets}}>
+			<input type="hidden" name="airlineCode" value="UA">
+			<input type="hidden" name="flightNumber" value={{params.flightno}}>
+			<input type="hidden" name="nonstop" value={{params.nonstop if params.nonstop else False}}>
+			<input type="hidden" name="otherCheck" value={{True if params.buckets else False}}>
+			<input type="hidden" name="otherClassCodes" value={{params.buckets}}>
+			<input type="hidden" name="all_classes" value={{True if not params.buckets else False}}>
+		</form>
+
 		<ul class="menu">
 			<li><a href="/ual"><span>New Search</span></a></li>
 			<li><a href="/ual?depart_airport={{params.depart_airport.upper()}}&arrive_airport={{params.arrive_airport.upper()}}&depart_date={{params.depart_date}}&buckets={{params.buckets}}&flightno={{params.flightno}}&nonstop={{params.nonstop if params.nonstop else ''}}&refine=true"><span>Refine Search</span></a></li>
 			<li><a href="/ual?depart_airport={{params.arrive_airport.upper()}}&arrive_airport={{params.depart_airport.upper()}}&depart_date={{params.depart_date}}&buckets={{params.buckets}}&flightno={{params.flightno}}&nonstop={{params.nonstop if params.nonstop else ''}}&refine=true"><span>Refine Search for Return Availability ({{params.arrive_airport.upper()}}-{{params.depart_airport.upper()}})</span></a></li>
+			<li><a href="javascript: searchPrev()"><span>Search Previous Day</span></a></li>
+			<li><a href="javascript: searchNext()"><span>Search Next Day</span></a></li>
 		</ul>
-	</form>  
+	<!-- </form>   -->
   
 	</div>
 	<div id="footer" align="center">
-				<a href="main.do">Home</a> &middot;
-				<a href="logout.do">Log Out</a> <br />
-	</div>
-	<script type="text/javascript">
-		var urlToNavigateTo = ""; 
-		var elements1 = YAHOO.util.Dom.getElementsByClassName("form-results-expanded-state", "span", "content");
-		var elements2 = YAHOO.util.Dom.getElementsByClassName("expandable", "div", "content");
-		var elements = elements1.concat(elements2);
-		YAHOO.util.Event.addListener(elements, "click", function(event){
-			var target = YAHOO.util.Event.getTarget(event);
-			if(YAHOO.util.Dom.hasClass(target, "form-results-expanded-state")||YAHOO.util.Dom.hasClass(target, "expandable")) {
-				if(YAHOO.util.Dom.hasClass(target.parentNode, "expanded")){
-					YAHOO.util.Dom.removeClass(target.parentNode, "expanded");
-				}
-				else{
-					YAHOO.util.Dom.addClass(target.parentNode, "expanded");
-				}
-			}
-		});
-		GUI.on("viewDesktopVersion", "click", function(event){
-			YAHOO.util.Event.stopEvent( event );
-			YAHOO.util.Cookie.set("mobilePref", "ViewDesktop", {
-			    path: "/",
-			    expires: new Date("January 12, 2900")
-			});
-			window.location.href='https://www.expertflyer.com/';
-		}, this, true);   
-		if("true" == "true" && ("3" == 4 || "3" == 2)){
-			var mobileAppCookie = YAHOO.util.Cookie.get("mobileApp");
-			if( (null == mobileAppCookie) && (navigator.userAgent.match(/iPhone/i) || navigator.userAgent.match(/iPod/i) || navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/Android/i)) ){
-				if(navigator.userAgent.match(/Android/i)){
-					GUI.show("mobileAppAndroidBanner");
-				}
-				else{
-					GUI.show("mobileAppItunesBanner");
-				}
-				GUI.show("mobileAppBanner");
-			}
-			GUI.on("bannerNoThanks", "click", function(event){
-				YAHOO.util.Event.stopEvent( event );
-				YAHOO.util.Cookie.set("mobileApp", "noThanks", {
-				    path: "/",
-				    expires: new Date("January 12, 2900")
-				});
-				GUI.hide("mobileAppBanner");
-			}, this, true);   
-		}
-		function getUrlFunction(){
-			return "getUrl";
-		}
-		function setUrlNative(url){
-			urlToNavigateTo	= url;	
-			return false;
-		};
-		function getUrl(){
-			var temp = "";
-			if(urlToNavigateTo){
-				temp = urlToNavigateTo;
-				urlToNavigateTo = "";
-			}
-			return temp;
-		};
-		GUI.util.load( function() {
-			if("" >= 1.3){
-				var nativeLinks = YAHOO.util.Dom.getElementsByClassName("native-url-link", "a", "content");
-				YAHOO.util.Event.addListener(nativeLinks, "click", function(event){
-					YAHOO.util.Event.stopEvent( event );
-					var target = YAHOO.util.Event.getTarget(event);
-					setUrlNative(target.href);
-				});
-			}
-		});
-	</script>
-		<script type="text/javascript">
-		</script>
-  
+				&nbsp;
+	</div>  
   </body>
 </html>

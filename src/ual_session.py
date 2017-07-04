@@ -161,6 +161,7 @@ class ual_session(requests.Session):
 		self.search_results = self.post('https://www.united.com/ual/en/us/flight-search/book-a-flight/flightshopping/getflightresults/rev',
 			data=search_params_full,
 			allow_redirects=True, headers=self.headers)
+		self.search_datetime = params.depart_datetime
 		# all of the data is in search_results in nice json form!
 
 
@@ -236,6 +237,7 @@ class ual_session(requests.Session):
 					newseg.flightno += ' (' + seg['OperatingCarrier'] + ')'
 				newseg.depart_date, newseg.depart_time = seg['DepartDateTime'].split(' ')
 				newseg.arrive_date, newseg.arrive_time = seg['DestinationDateTime'].split(' ')
+				newseg.search_datetime = self.search_datetime
 				tripdata.append(newseg)
 				connections = seg['Connections']
 				if connections:
