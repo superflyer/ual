@@ -74,13 +74,12 @@
   
 	<div id="subHeader">
 		<div id="subHeaderTitle">
-				Flight Availability
-		</div>
-		<div id="subHeaderContent">
-  		<div>
 			{{params.depart_airport.upper()}} to {{params.arrive_airport.upper()}} 
 			on {{params.depart_datetime.strftime('%a')}} 
 			{{params.depart_datetime.strftime('%m/%d/%y').strip('0')}}
+		</div>
+		<div id="subHeaderContent">
+  		<div>
 		</div>
 		<div>
 					<!-- Flying <b>UA </b> -->
