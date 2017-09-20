@@ -16,7 +16,7 @@ class ual_session(requests.Session):
 		alert_search: search and extract data for a given alert query, return results matching the specified buckets
 		basic_search: search and extract data for a given query, return all results
 		long_search: perform alert search over a range of dates -- DEPRECATED
-		extract_data, extract_data_old, extract_data_new: parse the response returned by a search into segments and trips
+		extract_data: parse the response returned by a search into segments and trips
 	"""
 
 	def __init__(self, user=None, pwd=None, ua_only=False, logging=False, useragent=None,
