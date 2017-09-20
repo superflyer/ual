@@ -6,20 +6,20 @@ import json
 def test(num_tests=1, search_type='Award'):
 	config = configure('../ual.config')
 	results = []
-	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],logging=True,
-		search_type=search_type)
-	Plist = [['9/5/16','IAH','FRA',True,''],
-			 ['12/20/16','SFO','EWR',True,'JY'],
-			 ['6/29/16','SFO','NRT',True],
-			 ['5/17/16','ORD','MSP',True],
-			 ['6/21/16','SFO','MSP',True],
-			 ['2/22/16','SFO','FRA',True],
-			 ['2/22/16','SFO','YUL',False],
-			 ['5/22/16','IAD','DXB',False],
-			 ['2/22/16','ORD','SFO',True],
-			 ['2/22/16','SFO','SIN',False],
-			 ['3/22/16','EWR','BOM',False],
-			 ['3/22/16','EWR','BOM',True]]
+	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],logging=True)
+#		search_type=search_type)
+	Plist = [['10/5/17','IAH','FRA',True,''],
+			 ['12/20/17','SFO','EWR',True,'JY'],
+			 ['6/29/18','SFO','NRT',True],
+			 ['5/17/18','ORD','MSP',True],
+			 ['6/21/18','SFO','MSP',True],
+			 ['2/22/18','SFO','FRA',True],
+			 ['2/22/18','SFO','YUL',False],
+			 ['5/22/18','IAD','DXB',False],
+			 ['2/22/18','ORD','SFO',True],
+			 ['2/22/18','SFO','SIN',False],
+			 ['3/22/18','EWR','BOM',False],
+			 ['3/22/18','EWR','BOM',True]]
 	for i in range(min(num_tests,len(Plist))):
 		P = alert_params(Plist[i][0],Plist[i][1],Plist[i][2],nonstop=Plist[i][3],buckets=Plist[i][4])
 		S.search(P)
@@ -42,7 +42,7 @@ class foo(object):
 	"""docstring for foo"""
 	def __init__(self, arg):
 		super(foo, self).__init__()
-		self.text = arg	
+		self.text = arg
 
 def test_parsing(filename):
 	config = configure('../ual.config')
@@ -69,7 +69,7 @@ def mr_test(filename):
 	S = run_mr_search(config, filename)
 
 if __name__ == '__main__':
-	mr_test('alerts/mr_searches.txt')
-	#X, results = test()
+	# mr_test('alerts/mr_searches.txt')
+	X, results = test()
 	#Y = load_search_results('response_logs/search.html')
 	# T = test_parsing('searches/SFOFRA1.json')

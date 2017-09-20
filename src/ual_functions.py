@@ -193,7 +193,8 @@ class Segment(object):
 
 
 class alert_params(object):
-	def __init__(self,depart_date,depart_airport,arrive_airport,flightno=None,buckets=None,nonstop=False):
+	def __init__(self, depart_date, depart_airport, arrive_airport, flightno=None, buckets=None,
+			nonstop=False):
 		self.depart_airport=depart_airport.upper()
 		self.arrive_airport=arrive_airport.upper()
 		self.buckets=buckets.upper() if buckets else ''
