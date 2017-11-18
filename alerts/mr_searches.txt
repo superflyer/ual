@@ -13,20 +13,20 @@
 #     availability on this segment will be reported if found.
 #  search returns AND of all specified buckets
 #
-TLV-counterclockwise	4/1/16	6/15/17	R	0010101
-TLV	SFO	+2
-EWR	TLV
-SFO	EWR			Y
-***
-TLV-clockwise	4/1/16	6/15/17	R	0010101
-SFO	TLV
-TLV	EWR	+1	UA91
-EWR	SFO	+2		Y
-***
-SYD-clockwise	2/1/16	6/15/17
+#TLV-counterclockwise	1/1/17	12/31/17	R	0010101
+#TLV	SFO	+2
+#EWR	TLV
+#SFO	EWR			Y
+#***
+#TLV-clockwise	1/1/17	12/31/17	R	0010101
+#SFO	TLV
+#TLV	EWR	+1	UA91
+#EWR	SFO	+2		Y
+#***
+SYD-clockwise	7/1/17	9/6/17
 LAX	SYD
 SYD	SFO	+2
 ***
-SYD-counterclockwise	2/1/16	6/15/17
+SYD-counterclockwise	7/1/17	9/6/17
 SFO	SYD
 SYD	LAX	+2
