@@ -4,9 +4,11 @@ import codecs
 import sys
 import argparse
 
+from datetime import datetime, timedelta
 from itertools import chain
 
-from ual_session import * 
+from ual_selenium import *
+from ual_session import *
 from ual_mileagerun import *
 
 
@@ -16,6 +18,7 @@ stderr = codecs.getwriter('utf-8')(sys.stderr)
 
 #set time zone
 os.environ['TZ'] = 'US/Pacific'
+
 
 def configure(config_file='ual.config'):
 	"""import user-configured parameters
@@ -40,16 +43,25 @@ def configure(config_file='ual.config'):
 	F.close()
 	return config
 
+
 def open_session(config, ua_only=False, logging=False, search_type=None):
-	# open Session
-	try:
-		ses = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],
-			ua_only=ua_only, logging=logging, search_type=search_type)
-	except Exception as e:
-		subject = e.args[0]
-		message = 'User: '+config['ual_user']
-		send_email(subject,message,config)
-		raise
+	# search_type parameter is ignored for now
+
+	# open session in selenium and do a search
+	b = ual_browser(config['ual_user'],config['ual_pwd'],
+		headless=True, ua_only=ua_only, logging=logging)
+	tomorrow = (datetime.today() + timedelta(1)).strftime('%m/%d/%y')
+	data = [tomorrow,'SFO','ACV','','','True']
+	params = alert_params(*data)
+	b.search(params)
+
+	# pass the parameters into a requests session
+	cookies = b.convert_cookies()
+	cart_id = b.find_element_by_id('EditSearchCartId').get_attribute('value')
+	tab_id = b.find_element_by_id('UASessionTabId').get_attribute('value')
+	ses = ual_search_session(cookies, cart_id, tab_id, logging=logging)
+
+	b.quit()
 	return ses
 
 
@@ -65,12 +77,12 @@ def send_aggregate_results(config, results=None, errors=None):
 		subject_err = 'Errors in ' + subject
 		message_err = '\n'.join([str(a)+': '+str(e) for a,e in errors])
 		e1 = send_email(subject_err, message_err, config)
-	else: 
+	else:
 		e1 = 0
 	return (e, e1)
 
 
-def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False, 
+def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 	ua_only=False, logging=False, search_type=None):
 	"""If no output file is specified then send email to address specified in config.
 	   If site_version is specified then the script will repeatedly log in until the specified site version is obtained
@@ -102,7 +114,7 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 				cur_datetime += timedelta(1)
 		except ValueError as e:
 			stderr.write('Error parsing alert definition: '+line+ '  (' + str(e) + ')\n')
-			continue			
+			continue
 		except:
 			stderr.write('Error parsing alert definition: '+line)
 			continue
@@ -206,16 +218,16 @@ if __name__=='__main__':
 
 	# configure to send text mesages
 	if args.t: config['alert_recipient'] = config['sms_alerts']
-	
+
 	# configure custom email address
 	if args.e: config['alert_recipient'] = args.e
 
 	# configure output file
 	config['output_file'] = args.o if args.o else None
-		
+
 	# configure email subject
 	config['email_subject'] = args.s if args.s else None
-		
+
 	# set logging
 	logging = args.v
 
@@ -247,7 +259,7 @@ if __name__=='__main__':
 			S = run_alerts(config, filename=args.alert_file, aggregate=True,
 				ua_only=ua_only, logging=logging, search_type=ual_search_type)
 		elif args.m:
-			S = run_mr_search(config, filename=args.alert_file, logging=logging, 
+			S = run_mr_search(config, filename=args.alert_file, logging=logging,
 				search_type=ual_search_type)
 		else:
 			S = run_alerts(config, filename=args.alert_file,

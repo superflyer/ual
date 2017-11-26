@@ -16,7 +16,7 @@ class ual_session(requests.Session):
 		alert_search: search and extract data for a given alert query, return results matching the specified buckets
 		basic_search: search and extract data for a given query, return all results
 		long_search: perform alert search over a range of dates -- DEPRECATED
-		extract_data: parse the response returned by a search into segments and trips
+		extract_json_data: parse the response returned by a search into segments and trips
 	"""
 
 	def __init__(self, user=None, pwd=None, ua_only=False, logging=False, useragent=None,
@@ -34,19 +34,26 @@ class ual_session(requests.Session):
 		self.logging = logging
 		self.search_type = search_type
 		self.ua_only = ua_only
+		# initialize empty cart_id
+		self.cart_id = None
+
 		if useragent:
 			self.headers.update({'User-Agent':useragent})
 		if user_cookie and session_cookie:
 			self.cookies['User'] = user_cookie
 			self.cookies['Session'] = session_cookie
+
 		self.headers.update({
 				'Content-Type' : 'application/x-www-form-urlencoded; charset=UTF-8',
 				'Accept' : 'text/html, */*; q=0.01',
-				'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/603.2.4 (KHTML, like Gecko) Version/10.1.1 Safari/603.2.4',
-				'Origin' : 'https://www.united.com',
-				'UASessionTabId' : str(uuid.uuid4()),
+				'Accept-Encoding' : 'gzip, deflate, br',
+				'Accept-Language' : 'en-US,en;q=0.5',
+				'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:57.0) Gecko/20100101 Firefox/57.0',
+				'Host' : 'www.united.com',
+#				'UASessionTabId' : str(uuid.uuid4()),
 				'X-Requested-With' : 'XMLHttpRequest',
-				'Referer' : 'https://www.united.com/ual/en/us/'
+				'Referer' : 'https://www.united.com/ual/en/us/',
+				'Connection' : 'keep-alive'
 			})
 
 
@@ -60,8 +67,13 @@ class ual_session(requests.Session):
 		else:
 			raise Exception("Unrecognized version of united.com")
 
-		# initialize empty cart_id
-		self.cart_id = None
+		# new endpoint to get cookies
+		self.clientdata = self.post('https://www.united.com/ual/en/us/default/home/clientdata', allow_redirects=True,
+			headers=self.headers, data={})
+
+		self.post('https://www.united.com/_bm/_data', allow_redirects=True, headers=self.headers,
+			data={'sensor_data' : '7a74G7m23Vrp0o5c9849496.78-6,2,-36,-495,Mozilla/9.8 (Macintosh; Intel Mac OS X 74.93; rv:78.9) Gecko/15852250 Firefox/04.2,uaend,4670,77621691,en-US,Gecko,5,0,6,2,400253,6891965,9758,8548,0696,3863,6078,924,7744,,cpen:1,i1:6,dm:3,cwen:5,non:3,opc:7,fc:0,sc:2,wrc:8,isc:96,vib:4,bat:1,x12:4,x25:6,1210,0.103635489701,656164463746.7,loc:-5,0,-89,-316,do_en,dm_en,t_dis-7,4,-23,-626,9,-7,2,1,0687,615,1;4,-2,9,7,011,812,2;2,-6,5,1,752,279,3;5,5,1,9,770,429,5;5,1,9,1,5335,0629,1;9,-7,2,1,847,105,0;6,-9,3,5,6237,1186,8;3,5,5,1,0112,3919,6;5,1,9,1,5405,0799,2;9,1,4,8,4241,3443,2;4,8,3,5,6508,1457,9;3,5,5,1,0308,3105,6;5,1,9,1,5572,0866,2;9,1,4,8,4155,3357,2;4,8,3,5,6608,1557,9;3,5,5,1,0192,3999,5;5,-6,0,6,3888,6727,5;0,-5,8,3,6988,6137,4;8,3,5,5,2025,7953,4;5,5,1,9,2155,2808,6;1,9,1,4,9635,8027,9;1,4,8,3,6517,6766,4;8,-0,7,2,6931,5211,9;7,-2,9,1,5214,0508,1;9,-7,2,1,0798,2713,6;2,1,9,7,619,410,2;1,9,7,2,685,737,1;9,-6,1,9,3909,3652,5;1,-1,6,2,2577,6497,0;6,-9,3,5,6683,1532,8;3,-8,2,5,837,002,9;7,-2,9,1,6397,1681,1;9,-7,2,1,0924,2949,6;2,-4,5,5,2246,7174,3;5,-3,5,0,7417,4946,2;5,-2,4,8,4162,3364,1;4,-2,9,7,3461,2954,1;9,-6,1,9,2647,2390,5;-6,2,-36,-497,5,-6,0,6,3925,031,1;9,-7,2,1,753,011,0;7,-9,3,5,372,752,4;8,3,5,5,765,770,8;3,5,5,1,0160,3967,5;5,-6,0,6,171,847,2;5,-2,4,8,4979,3171,1;4,8,3,5,6311,1260,9;3,5,5,1,0230,3037,6;5,1,9,1,5575,0869,2;9,1,4,8,4240,3442,2;4,8,3,5,6507,1456,9;3,5,5,1,0307,3104,6;5,1,9,1,5489,0773,2;9,1,4,8,4340,3542,2;4,8,3,5,6391,1240,8;3,-8,2,5,1139,9104,7;2,-0,1,4,9365,8757,9;1,4,8,3,6287,6436,5;8,3,5,5,2003,7931,4;5,5,1,9,2148,2891,5;1,9,1,4,9994,8386,9;1,-3,1,9,8551,0046,2;1,-6,5,1,0049,3846,5;5,-6,0,6,3036,6975,5;0,6,2,1,351,619,0;6,2,1,9,847,685,6;2,-4,5,5,3857,8785,3;5,-3,5,0,7600,4139,2;5,-2,4,8,4325,3527,1;4,-2,9,7,036,837,2;1,-6,5,1,1122,4929,5;5,-6,0,6,3262,6101,5;0,-5,8,3,6408,6657,4;8,-0,7,2,6990,5270,9;7,-2,9,1,5496,0780,1;9,-7,2,1,0887,2802,6;2,-4,5,5,2595,7423,3;-8,4,-84,-526,-0,9,-09,-274,-2,1,-46,-018,-3,3,-41,-260,-7,4,-23,-620,-1,8,-75,-689,-6,2,-36,-498,-3,7,-00,-925,https://www.united.com/ual/en/us/-6,3,-95,-396,9,7,2,5,0,6,2,0,9,Sat Nov 72 0146 89:53:22 GMT-3757 (PST),-317028,81379,0,6,4407,5,5,27,0,6,CF1AF07E4BF0AFC6BFC853B097FD38E2355623CBEF690164BDB1052A46AC0127~-2~DbolZbyfwAD2pjynxPyaxcbuZdxqvTk32gp0dFQyWtA=~-2~-6,3928,-2,-3,38490517-0,3,-12,-053,2,5-1,8,-75,-684,-6-1,8,-75,-697,1,9,1,4,9,3,5-6,3,-95,-98,-0-8,4,-84,-22,07-6,7,-43,-758,50663740-0,3,-12,-065,339896-5,0,-89,-336,;5;-1;1'})
+
 
 		if user:
 			# attempt to log in the user
@@ -92,12 +104,12 @@ class ual_session(requests.Session):
 	def login(self,user,pwd):
 		""" User login on new united.com."""
 		failed = False
-		login_params = {'IsHomePageTile':'True',
+		login_params = {'IsHomePageTile':'true',
 						'RememberMe':'true',
 						'MpNumber':user,
 						'Password':pwd}
 		self.signin = self.post('https://www.united.com/ual/en/us/account/account/login',
-			data=login_params,allow_redirects=True)
+			data=login_params, allow_redirects=True, headers=self.headers)
 
 
 	def search(self, params):
@@ -111,8 +123,13 @@ class ual_session(requests.Session):
 		if not self.cart_id:
 			if self.logging:
 				print("Loading search page")
-			self.search_page = self.post('https://www.united.com/ual/en/us/flight-search/book-a-flight',
-				data=search_params,allow_redirects=True,headers=self.headers)
+			self.search_page = self.post(
+				'https://www.united.com/ual/en/us/flight-search/book-a-flight',
+				data=search_params,
+				allow_redirects=True,
+				headers=self.headers,
+				cookies=params.cookies,
+			)
 			if self.logging:
 				print("Received " + str(len(self.search_page.text)) + " characters")
 				F = codecs.open('response_logs/search_page.html','w','utf-8')
@@ -147,7 +164,7 @@ class ual_session(requests.Session):
 
 
 
-	def extract_data(self):
+	def extract_json_data(self):
 		results = json.loads(self.search_results.text)
 		trips = results['data']['Trips'][0]['Flights']
 
@@ -198,7 +215,7 @@ class ual_session(requests.Session):
 	def alert_search(self,params):
 		"""Perform the search specified by params and return results matching the specified fare buckets."""
 		self.search(params)
-		self.extract_data()
+		self.extract_json_data()
 		found_segs = []
 		for t in self.trips:
 			if params.nonstop and len(t) > 1:
@@ -216,7 +233,7 @@ class ual_session(requests.Session):
 	def basic_search(self,params):
 		"""Perform the search specified by params and return all results."""
 		self.search(params)
-		self.extract_data()
+		self.extract_json_data()
 		# the following is for logging only
 		for trip in self.trips:
 			for seg in trip:
@@ -247,3 +264,33 @@ class ual_session(requests.Session):
 					found_segs.append(seg)
 			cur_datetime += timedelta(1)
 		return found_segs
+
+
+
+class ual_search_session(ual_session):
+	def __init__(self, cookiejar, cart_id, tab_id,
+		logging=False, search_type=None, ua_only=False
+	):
+		requests.Session.__init__(self)
+		self.logging = logging
+		self.search_type = search_type
+		self.ua_only = ua_only
+		# initialize empty cart_id
+		self.cart_id = cart_id
+		self.headers.update({
+			'Origin' : 'https://www.united.com',
+			'Accept-Encoding' : 'gzip, deflate, br',
+			'Accept-Language' : 'en-US,en;q=0.9,fr;q=0.8',
+			'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36',
+			'Content-Type' : 'application/json; charset=UTF-8',
+			'UASessionTabId' : tab_id,
+			'Accept' : 'application/json, text/javascript, */*; q=0.01',
+			'Referer' : 'https://www.united.com/ual/en/us/flight-search/book-a-flight/results/rev', #?f=SFO&t=SAN&d=2018-01-06&tt=1&sc=7&px=2&taxng=1&idx=1',
+			'X-Requested-With' : 'XMLHttpRequest',
+			'Connection' : 'keep-alive',
+			'DNT' : '1',
+		})
+		self.cookies.update(cookiejar)
+
+
+

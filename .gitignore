@@ -1,5 +1,7 @@
-search.html
 *.pyc
 .DS_Store
-mr/*search*.txt
-mr/*results*.txt
+*/mr/*search*.txt
+*/mr/*results*.txt
+*.html
+response_logs
+.ipynb_checkpoints
