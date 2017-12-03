@@ -44,15 +44,14 @@ def configure(config_file='ual.config'):
 	return config
 
 
-def open_session(config, search_type=None, ua_only=False, logging=False, debug=False):
+def open_session(config, search_type=None, ua_only=False, logging=False):
 	# search_type parameter is ignored for now
 	# open session in selenium and log in
 	browser = ual_browser(config['ual_user'],config['ual_pwd'],
-		headless=False, ua_only=ua_only, logging=logging)
+		headless=True, ua_only=ua_only, logging=logging)
 
 	# pass the parameters into a requests session
 	ses = ual_selenium_session(browser)
-	ses.debug = debug
 	return ses
 
 
@@ -81,7 +80,7 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 	"""
 
 	with open_session(config, ua_only=ua_only, logging=logging,
-		search_type=search_type, debug=True) as ses:
+		search_type=search_type) as ses:
 
 		# read alert defs
 		with open(filename,'r') as F:

@@ -43,6 +43,8 @@ class ual_browser(webdriver.Chrome):
 	def __init__(self, user, pwd, headless=True, ua_only=False, logging=False):
 
 		# set options and initialize
+		if logging:
+			stdout.write("Initializing headless Chrome\n")
 		chrome_options = Options()
 		if headless:
 			chrome_options.add_argument("--headless")
@@ -57,7 +59,7 @@ class ual_browser(webdriver.Chrome):
 		self.answer_questions()
 
 
-	def wait_for_load(self, xpath, text=None, wait_time_seconds=10, logfile=None):
+	def wait_for_load(self, xpath, text=None, wait_time_seconds=20, logfile=None):
 		loaded = WebDriverWait(self, wait_time_seconds).until(
 		    EC.text_to_be_present_in_element(
 		    	(By.XPATH, xpath),
