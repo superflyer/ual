@@ -36,6 +36,7 @@ class ual_session(requests.Session):
 		self.ua_only = ua_only
 		# initialize empty cart_id
 		self.cart_id = None
+		self.tripdata = None
 
 		if useragent:
 			self.headers.update({'User-Agent':useragent})
@@ -165,8 +166,11 @@ class ual_session(requests.Session):
 
 
 	def extract_json_data(self):
-		results = json.loads(self.search_results.text)
-		trips = results['data']['Trips'][0]['Flights']
+		if self.tripdata:
+			trips = json.loads(self.tripdata)
+		else:
+			results = json.loads(self.search_results.text)
+			trips = results['data']['Trips'][0]['Flights']
 
 		alltrips = []
 		for t in trips:
@@ -264,33 +268,6 @@ class ual_session(requests.Session):
 					found_segs.append(seg)
 			cur_datetime += timedelta(1)
 		return found_segs
-
-
-
-class ual_search_session(ual_session):
-	def __init__(self, cookiejar, cart_id, tab_id,
-		logging=False, search_type=None, ua_only=False
-	):
-		requests.Session.__init__(self)
-		self.logging = logging
-		self.search_type = search_type
-		self.ua_only = ua_only
-		# initialize empty cart_id
-		self.cart_id = cart_id
-		self.headers.update({
-			'Origin' : 'https://www.united.com',
-			'Accept-Encoding' : 'gzip, deflate, br',
-			'Accept-Language' : 'en-US,en;q=0.9,fr;q=0.8',
-			'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36',
-			'Content-Type' : 'application/json; charset=UTF-8',
-			'UASessionTabId' : tab_id,
-			'Accept' : 'application/json, text/javascript, */*; q=0.01',
-			'Referer' : 'https://www.united.com/ual/en/us/flight-search/book-a-flight/results/rev', #?f=SFO&t=SAN&d=2018-01-06&tt=1&sc=7&px=2&taxng=1&idx=1',
-			'X-Requested-With' : 'XMLHttpRequest',
-			'Connection' : 'keep-alive',
-			'DNT' : '1',
-		})
-		self.cookies.update(cookiejar)
 
 
 

@@ -44,24 +44,15 @@ def configure(config_file='ual.config'):
 	return config
 
 
-def open_session(config, ua_only=False, logging=False, search_type=None):
+def open_session(config, search_type=None, ua_only=False, logging=False, debug=False):
 	# search_type parameter is ignored for now
-
-	# open session in selenium and do a search
-	b = ual_browser(config['ual_user'],config['ual_pwd'],
-		headless=True, ua_only=ua_only, logging=logging)
-	tomorrow = (datetime.today() + timedelta(1)).strftime('%m/%d/%y')
-	data = [tomorrow,'SFO','ACV','','','True']
-	params = alert_params(*data)
-	b.search(params)
+	# open session in selenium and log in
+	browser = ual_browser(config['ual_user'],config['ual_pwd'],
+		headless=False, ua_only=ua_only, logging=logging)
 
 	# pass the parameters into a requests session
-	cookies = b.convert_cookies()
-	cart_id = b.find_element_by_id('EditSearchCartId').get_attribute('value')
-	tab_id = b.find_element_by_id('UASessionTabId').get_attribute('value')
-	ses = ual_search_session(cookies, cart_id, tab_id, logging=logging)
-
-	b.quit()
+	ses = ual_selenium_session(browser)
+	ses.debug = debug
 	return ses
 
 
@@ -89,72 +80,70 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 	   (up to max_retries times).
 	"""
 
-	ses = open_session(config, ua_only=ua_only, logging=logging, search_type=search_type)
+	with open_session(config, ua_only=ua_only, logging=logging,
+		search_type=search_type, debug=True) as ses:
 
-	# read alert defs
-	F = open(filename,'r')
-	alert_defs = []
-	for line in F:
-		try:
-			data = line.strip().split('\t')
-			if len(data) < 3 or data[0][0]=='#': continue
-			if aggregate:
-				end_date = data.pop(1)
-			else:
-				end_date = data[0]
-			a = alert_params(*data)
-			a.nonstop=True
-			cur_datetime = parser.parse(data[0])
-			while cur_datetime <= parser.parse(end_date):
-				# if doing an aggregate search, copy the search definition for each day
-				b = a.copy()
-				b.depart_date = cur_datetime.strftime('%m/%d/%y')
-				b.depart_datetime = cur_datetime
-				alert_defs.append(b)
-				cur_datetime += timedelta(1)
-		except ValueError as e:
-			stderr.write('Error parsing alert definition: '+line+ '  (' + str(e) + ')\n')
-			continue
-		except:
-			stderr.write('Error parsing alert definition: '+line)
-			continue
-	F.close()
+		# read alert defs
+		with open(filename,'r') as F:
+			alert_defs = []
+			for line in F:
+				try:
+					data = line.strip().split('\t')
+					if len(data) < 3 or data[0][0]=='#': continue
+					if aggregate:
+						end_date = data.pop(1)
+					else:
+						end_date = data[0]
+					a = alert_params(*data)
+					a.nonstop=True
+					cur_datetime = parser.parse(data[0])
+					while cur_datetime <= parser.parse(end_date):
+						# if doing an aggregate search, copy the search definition for each day
+						b = a.copy()
+						b.depart_date = cur_datetime.strftime('%m/%d/%y')
+						b.depart_datetime = cur_datetime
+						alert_defs.append(b)
+						cur_datetime += timedelta(1)
+				except ValueError as e:
+					stderr.write('Error parsing alert definition: '+line+ '  (' + str(e) + ')\n')
+					continue
+				except:
+					stderr.write('Error parsing alert definition: '+line)
+					continue
 
-	print datetime.today().strftime('%c')
-	results = []
-	errors = []
-	for a in alert_defs:
-		# search for alerts
-		try:
-			segs = ses.alert_search(a)
-		except Exception as e:
-			if aggregate:
-				errors.append((a,e.args[0]))
-			else:
-				subject = e.args[0]
-				message = 'Query: '+str(a)
-				stderr.write(subject+'\n'+message+'\n')
-				if not config['suppress_errors']:
-					send_email(subject,message,config)
-			continue
-		for seg in segs:
+		print datetime.today().strftime('%c')
+		results = []
+		errors = []
+		for a in alert_defs:
+			# search for alerts
 			try:
-				print(seg.condensed_repr())
-			except:
-				print(seg)
-				stderr.write('Error getting string representation of segment.\n')
+				segs = ses.alert_search(a)
+			except Exception as e:
+				if aggregate:
+					errors.append((a,e.args[0]))
+				else:
+					subject = e.args[0]
+					message = 'Query: '+str(a)
+					stderr.write(subject+'\n'+message+'\n')
+					if not config['suppress_errors']:
+						send_email(subject,message,config)
 				continue
-			if seg.search_results and max(seg.search_results.values()) > 0:
-				results.append(seg)
-				if not aggregate:
-					subject = config['email_subject'] if config['email_subject'] else 'Results for '+str(a)
-					message = 'Query: '+str(a)+'\nResults: '+seg.condensed_repr()
-					send_email(subject,message,config)
+			for seg in segs:
+				try:
+					print(seg.condensed_repr())
+				except:
+					print(seg)
+					stderr.write('Error getting string representation of segment.\n')
+					continue
+				if seg.search_results and max(seg.search_results.values()) > 0:
+					results.append(seg)
+					if not aggregate:
+						subject = config['email_subject'] if config['email_subject'] else 'Results for '+str(a)
+						message = 'Query: '+str(a)+'\nResults: '+seg.condensed_repr()
+						send_email(subject,message,config)
 
-	if aggregate:
-		e, e1 = send_aggregate_results(config, results, errors)
-
-	return(ses)
+		if aggregate:
+			e, e1 = send_aggregate_results(config, results, errors)
 
 
 def run_mr_search(config, filename='alerts/mr_searches.txt', logging=False, search_type=None):
@@ -254,18 +243,16 @@ if __name__=='__main__':
 		ual_search_type = None
 
 	# run the alerts
-	if args.alert_file:
-		if args.a:
-			S = run_alerts(config, filename=args.alert_file, aggregate=True,
-				ua_only=ua_only, logging=logging, search_type=ual_search_type)
-		elif args.m:
-			S = run_mr_search(config, filename=args.alert_file, logging=logging,
-				search_type=ual_search_type)
-		else:
-			S = run_alerts(config, filename=args.alert_file,
-				ua_only=ua_only, logging=logging, search_type=ual_search_type)
+	alert_file = args.alert_file if args.alert_file else 'alerts/alert_defs.txt'
+	if args.a:
+		run_alerts(config, filename=alert_file, aggregate=True,
+			ua_only=ua_only, logging=logging, search_type=ual_search_type)
+	elif args.m:
+		run_mr_search(config, filename=alert_file, logging=logging,
+			search_type=ual_search_type)
 	else:
-		S = run_alerts(config, ua_only=ua_only, logging=logging, search_type=ual_search_type)
+		run_alerts(config, filename=alert_file,
+			ua_only=ua_only, logging=logging, search_type=ual_search_type)
 
 
 

@@ -14,9 +14,29 @@ import sys
 from ual_session import *
 from ual_functions import *
 
-#redefine stdout/stderr to handle utf-8
+# redefine stdout/stderr to handle utf-8
 stdout = codecs.getwriter('utf-8')(sys.stdout)
 stderr = codecs.getwriter('utf-8')(sys.stderr)
+
+# javascript for searches
+inject_js = """RESULTS = [];
+        (function(JSON) {
+          var oldParse = JSON.parse;
+
+          JSON.parse = function(data, reviver) {
+            var result = oldParse(data, reviver);
+
+            if (result && result['data'] && result['data']['Trips'] && result['data']['Trips'][0] && result['data']['Trips'][0]['Flights']) {
+              console.log('Found something with trips!');
+              console.log(result['data']['Trips'][0]['Flights']);
+              RESULTS = RESULTS.concat(result['data']['Trips'][0]['Flights']);
+            }
+
+            return result;
+          };
+        }(JSON));"""
+
+fetch_js = "return JSON.stringify(RESULTS);"
 
 
 class ual_browser(webdriver.Chrome):
@@ -37,12 +57,13 @@ class ual_browser(webdriver.Chrome):
 		self.answer_questions()
 
 
-	def wait_for_text(self, xpath, text, wait_time_seconds=10, logfile=None):
+	def wait_for_load(self, xpath, text=None, wait_time_seconds=10, logfile=None):
 		loaded = WebDriverWait(self, wait_time_seconds).until(
 		    EC.text_to_be_present_in_element(
 		    	(By.XPATH, xpath),
 		    	text
-		    )
+		    ) if text else
+		    EC.presence_of_element_located((By.XPATH, xpath))
 		)
 		if not loaded:
 			stderr.write("Timeout waiting for response\n")
@@ -50,7 +71,7 @@ class ual_browser(webdriver.Chrome):
 			stdout.write(
 				"Received " + str(len(self.page_source)) + " characters.\n"
 			)
-			F = codecs.open(logfile, 'w', 'utf-8')
+			F = codecs.open('response_logs/' + logfile, 'w', 'utf-8')
 			F.write(self.page_source)
 			F.close()
 
@@ -60,7 +81,7 @@ class ual_browser(webdriver.Chrome):
 		field.send_keys(new_text)
 
 
-	def get_homepage(self):
+	def get_homepage(self, reload=False):
 		if self.logging:
 			stdout.write("Loading united.com homepage.\n")
 		self.get('https://www.united.com/web/en-US')
@@ -69,10 +90,10 @@ class ual_browser(webdriver.Chrome):
 		signin_tile = self.find_elements_by_xpath('//*[@id="tile-signin"]/a')[0]
 		signin_tile.click()
 
-		self.wait_for_text(
+		self.wait_for_load(
 			'//*[@id="frm-login"]/div[2]/a',
 			"Forgot your MileagePlus number?",
-			logfile='response_logs/homepage.html',
+			logfile='homepage.html',
 		)
 
 
@@ -86,10 +107,10 @@ class ual_browser(webdriver.Chrome):
 		loginButton = self.find_element_by_id("btnSignIn")
 		loginButton.click()
 
-		self.wait_for_text(
+		self.wait_for_load(
 			'//*[@id="main-content"]/div[2]/div/h1',
 			"We don't recognize this device",
-			logfile='response_logs/login.html',
+			logfile='login.html',
 		)
 
 
@@ -106,37 +127,11 @@ class ual_browser(webdriver.Chrome):
 		nextButton = self.find_element_by_id("btnNext")
 		nextButton.click()
 
-		self.wait_for_text(
+		self.wait_for_load(
 			'//*[@id="main-content"]/div[2]/h1',
 			"Welcome to united.com",
-			logfile="response_logs/questions.html",
+			logfile="questions.html",
 		)
-
-
-	def search(self, params):
-		if self.logging:
-			stdout.write("Searching for " + str(params) + "\n")
-		Origin = self.find_element_by_id("Origin")
-		Destination = self.find_element_by_id("Destination")
-		DepartDate = self.find_element_by_id("DepartDate")
-		if self.homepage:
-			OneWay = self.find_element_by_id("SearchTypeMain_oneWay")
-			OneWay.click()
-
-		self.replace_text(DepartDate, params.depart_date)
-		self.replace_text(Origin, params.depart_airport)
-		self.replace_text(Destination, params.arrive_airport + Keys.ENTER)
-
-	# wait for this to disappear if you want 1-stop itineraries
-	# '//*[@id="fl-stopsresults-loader-partial"]/h2'
-	# "Loading flight options with stops"
-
-		self.wait_for_text(
-			'//*[@id="flight-details-1"]',
-			'',
-			logfile='response_logs/search_results.html',
-		)
-		self.homepage=False
 
 
 	def convert_cookies(self):
@@ -154,16 +149,73 @@ class ual_browser(webdriver.Chrome):
 		return(jar)
 
 
+class ual_selenium_session(ual_session):
+	def __init__(self, browser):
+		self.ua_only = browser.ua_only
+		self.browser = browser
+
+
+	def __enter__(self):
+		return self
+
+
+	def __exit__(self, type, value, traceback):
+		if not self.debug:
+			self.browser.quit()
+
+
+	def search(self, params):
+		b = self.browser
+		if b.logging:
+			stdout.write("Searching for " + str(params) + "\n")
+		self.search_datetime = params.depart_datetime
+
+		Origin = b.find_element_by_id("Origin")
+		Destination = b.find_element_by_id("Destination")
+		DepartDate = b.find_element_by_id("DepartDate")
+		if b.homepage:
+			OneWay = b.find_element_by_id("SearchTypeMain_oneWay")
+			OneWay.click()
+			if params.nonstop:
+				Nonstop = b.find_element_by_id("NonStopOnly")
+				Nonstop.click()
+
+		b.replace_text(DepartDate, params.depart_date)
+		b.replace_text(Origin, params.depart_airport)
+		b.replace_text(Destination, params.arrive_airport + Keys.ENTER)
+		b.execute_script(inject_js);
+		if params.nonstop:
+			b.wait_for_load(
+				'//*[@id="flight-result-list-revised"]',
+				logfile='search_results.html',
+			)
+		else:
+			b.wait_for_load(
+				'//*[@id="FWSolutionSetId"]',
+				logfile='search_results.html',
+			)
+
+		self.tripdata = b.execute_script(fetch_js)
+		b.homepage=False # only the first query is on the homepage
+
+		# we get "access denied" after 3 requests made in this way,
+		# so we're reloading the home page each time to start over.
+		# this is very slow.
+		b.get('https://www.united.com/web/en-US')
+		b.homepage=True
+
 
 if __name__ == "__main__":
 	b = ual_browser(sys.argv[1], sys.argv[2], headless=False, logging=True)
 	data = ['5/22/18','SFO','AUS','','FX','True']
 	params = alert_params(*data)
-	b.search(params)
-	cookies = b.convert_cookies()
-	#cookies = '; '.join(c['name'] + '=' + c['value'] for c in b.get_cookies())
-	cart_id = b.find_element_by_id('EditSearchCartId').get_attribute('value')
-	tab_id = b.find_element_by_id('UASessionTabId').get_attribute('value')
-	S = ual_search_session(cookies, cart_id, tab_id, logging=True)
-	S.basic_search(params)
-	# b.extract_html_data()
+	S = ual_selenium_session(b)
+	S.search(params)
+	S.extract_json_data()
+	print(S.trips)
+
+	data2 = ['1/22/18','LHR','SFO','','OIR','True']
+	S.search(alert_params(*data2))
+	S.extract_json_data()
+	print(S.trips)
+
