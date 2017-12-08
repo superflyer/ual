@@ -155,6 +155,7 @@ class ual_selenium_session(ual_session):
 	def __init__(self, browser):
 		self.ua_only = browser.ua_only
 		self.browser = browser
+		self.debug = False
 
 
 	def __enter__(self):

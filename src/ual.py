@@ -121,8 +121,8 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 				if aggregate:
 					errors.append((a,e.args[0]))
 				else:
-					subject = e.args[0]
-					message = 'Query: '+str(a)
+					subject = 'Superflyer error'
+					message = 'Query: ' + str(a) + '\nException: ' + str(e.args)
 					stderr.write(subject+'\n'+message+'\n')
 					if not config['suppress_errors']:
 						send_email(subject,message,config)
