@@ -87,7 +87,7 @@ def query_submit():
 	flightno = airline + flightno
 
 	params = alert_params(depart_date,depart_airport,arrive_airport,flightno,buckets,nonstop=nonstop)
-	if args.t: 
+	if args.t:
 		# testing mode
 		F = open('ual_test/international.html')
 		raw_data = F.read()
@@ -107,14 +107,13 @@ def query_submit():
 				or 'I' in params.buckets else 'Upgrade'
 			if current_search_type != S.search_type:
 				config = configure(args.c)
-				S = ual_session(config['ual_user'], config['ual_pwd'], 
+				S = ual_session(config['ual_user'], config['ual_pwd'],
 						useragent=config['spoofUA'], search_type=current_search_type)
 
 		# last session timed out
-		if S.last_login_time < datetime.now() - timedelta(minutes=30) or ual_search_type == "No-expert":
-			config = configure(args.c)
-			S = ual_session(config['ual_user'], config['ual_pwd'], useragent=config['spoofUA'],
-					search_type=S.search_type)
+		if S.browser.last_login_time < datetime.now() - timedelta(minutes=30) or ual_search_type == "No-expert":
+			S.browser.get_homepage()
+			S.browser.login(config['ual_user'], config['ual_pwd'])
 
 		# do the search
 		result = S.basic_search(params)
@@ -123,11 +122,11 @@ def query_submit():
 			result = [t for t in result if len(t)==1]
 		sorted_result = sorted(result, key=lambda x: (len(x), x[0].depart_datetime))
 
-		
+
 	#logging
 	sys.stdout.write(strftime("%Y-%m-%d %H:%M:%S", localtime())+'\n')
 	sys.stdout.flush()
-	
+
 	params.timedelta = timedelta
 	return template("templates/results", params=params, data=sorted_result)
 
@@ -167,8 +166,7 @@ if __name__=='__main__':
 	# global variable to hold session
 	if not args.t:
 		config = configure(args.c)
-		S = ual_session(config['ual_user'], config['ual_pwd'], useragent=config['spoofUA'],
-				search_type=ual_search_type)
+		S = open_session(config, search_type=ual_search_type)
 		S.last_search_type = None
 
 	if args.l:

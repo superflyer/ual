@@ -119,7 +119,7 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 				segs = ses.alert_search(a)
 			except Exception as e:
 				if aggregate:
-					errors.append((a,e.args[0]))
+					errors.append((a, str(e.args)))
 				else:
 					subject = 'Superflyer error'
 					message = 'Query: ' + str(a) + '\nException: ' + str(e.args)

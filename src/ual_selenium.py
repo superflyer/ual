@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import bs4
 import codecs
+from datetime import datetime
 import re
 import requests
 from selenium import webdriver
@@ -51,7 +52,8 @@ class ual_browser(webdriver.Chrome):
 			chrome_options.add_argument("--window-size=1920x1080")
 		webdriver.Chrome.__init__(self, chrome_options=chrome_options)
 		self.ua_only = ua_only
-		self.logging=logging
+		self.logging = logging
+		self.last_login_time = datetime.min
 
 		# log in
 		self.get_homepage()
@@ -108,6 +110,7 @@ class ual_browser(webdriver.Chrome):
 		password.send_keys(pwd)
 		loginButton = self.find_element_by_id("btnSignIn")
 		loginButton.click()
+		self.last_login_time = datetime.now()
 
 		self.wait_for_load(
 			'//*[@id="main-content"]/div[2]/div/h1',
