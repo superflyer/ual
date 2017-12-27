@@ -8,6 +8,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -41,24 +42,34 @@ fetch_js = "return JSON.stringify(RESULTS);"
 
 
 class ual_browser(webdriver.Chrome):
-	def __init__(self, user, pwd, headless=True, ua_only=False, logging=False):
+	def __init__(self, user=None, pwd=None, headless=True, ua_only=False, logging=False):
 
 		# set options and initialize
 		if logging:
 			stdout.write("Initializing headless Chrome\n")
+			headless=False
 		chrome_options = Options()
 		if headless:
 			chrome_options.add_argument("--headless")
 			chrome_options.add_argument("--window-size=1920x1080")
 		webdriver.Chrome.__init__(self, chrome_options=chrome_options)
+		#webdriver.Firefox.__init__(self)
 		self.ua_only = ua_only
 		self.logging = logging
 		self.last_login_time = datetime.min
 
-		# log in
-		self.get_homepage()
-		self.login(user, pwd)
-		self.answer_questions()
+		if self.logging:
+			stdout.write("Loading united.com booking page.\n")
+		self.get('https://www.united.com/ual/en/us/flight-search/book-a-flight')
+		self.wait_for_load(
+			'//*[@id="btn-search"]',
+			logfile='searchpage.html',
+		)
+
+		# self.get_search_page()
+		# self.get_homepage()
+		# self.login(user, pwd)
+		# self.answer_questions()
 
 
 	def wait_for_load(self, xpath, text=None, wait_time_seconds=20, logfile=None):
@@ -113,8 +124,7 @@ class ual_browser(webdriver.Chrome):
 		self.last_login_time = datetime.now()
 
 		self.wait_for_load(
-			'//*[@id="main-content"]/div[2]/div/h1',
-			"We don't recognize this device",
+			'//*[@id="QuestionsList_0__AnswerKey"]',
 			logfile='login.html',
 		)
 
@@ -156,9 +166,10 @@ class ual_browser(webdriver.Chrome):
 
 class ual_selenium_session(ual_session):
 	def __init__(self, browser):
-		self.ua_only = browser.ua_only
+		ual_session.__init__(self, logging=browser.logging, ua_only=browser.ua_only)
 		self.browser = browser
 		self.debug = False
+		self.first_page = True
 
 
 	def __enter__(self):
@@ -176,52 +187,77 @@ class ual_selenium_session(ual_session):
 			stdout.write("Searching for " + str(params) + "\n")
 		self.search_datetime = params.depart_datetime
 
-		Origin = b.find_element_by_id("Origin")
-		Destination = b.find_element_by_id("Destination")
-		DepartDate = b.find_element_by_id("DepartDate")
-		if b.homepage:
-			OneWay = b.find_element_by_id("SearchTypeMain_oneWay")
-			OneWay.click()
+
+		if self.first_page:
+			Origin = b.find_element_by_id('Trips_0__Origin')
+			Destination = b.find_element_by_id('Trips_0__Destination')
+			DepartDate = b.find_element_by_id('Trips_0__DepartDate')
+	 		OneWay = b.find_elements_by_xpath('//*[@id="search-summary-wrapper"]/fieldset[4]/div/div/div/label[2]')[0]
+			search_btn = b.find_element_by_id('btn-search')
 			if params.nonstop:
-				Nonstop = b.find_element_by_id("NonStopOnly")
+				Nonstop = b.find_element_by_id("Trips_0__NonStop")
 				Nonstop.click()
-
-		b.replace_text(DepartDate, params.depart_date)
-		b.replace_text(Origin, params.depart_airport)
-		b.replace_text(Destination, params.arrive_airport + Keys.ENTER)
-		b.execute_script(inject_js);
-		if params.nonstop:
-			b.wait_for_load(
-				'//*[@id="flight-result-list-revised"]',
-				logfile='search_results.html',
-			)
+			OneWay.click()
+			Upgrade = b.find_element_by_id("select-upgrade-type")
+			Upgrade.send_keys('M' + Keys.ENTER)
 		else:
-			b.wait_for_load(
-				'//*[@id="FWSolutionSetId"]',
-				logfile='search_results.html',
-			)
+			Origin = b.find_element_by_id("Origin")
+			Destination = b.find_element_by_id("Destination")
+			DepartDate = b.find_element_by_id("DepartDate")
+			search_btn = b.find_elements_by_xpath('//*[@id="flightSearch"]/fieldset/div/div[2]/div/div[2]/button')[0]
 
-		self.tripdata = b.execute_script(fetch_js)
-		b.homepage=False # only the first query is on the homepage
+		b.replace_text(DepartDate, params.depart_date + Keys.TAB)
+		b.replace_text(Origin, params.depart_airport + Keys.TAB)
+		b.replace_text(Destination, params.arrive_airport + Keys.TAB)
+		# b.execute_script(inject_js);
+		search_btn.click()
 
-		# we get "access denied" after 3 requests made in this way,
-		# so we're reloading the home page each time to start over.
-		# this is very slow.
-		b.get('https://www.united.com/web/en-US')
-		b.homepage=True
+		# if self.first_page:
+		# 	b.wait_for_load(
+		# 		'//*[@id="ui-datepicker-div"]',
+		# 		)
+		self.first_page = False
+		# if params.nonstop:
+		# 	b.wait_for_load(
+		# 		'//*[@id="flight-result-list-revised"]/li[1]/div[2]',
+		# 		logfile='search_results.html',
+		# 	)
+		# else:
+		b.wait_for_load(
+			'//*[@id="fl-results-loader-full"]/h2',
+			'Thank you for choosing United',
+		)
+		b.wait_for_load(
+			'//*[@id="flight-result-list-revised"]/li[1]/div[2]',
+			logfile='search_results.html',
+		)
+
+		self.search_results = b.page_source
+		# cart = b.find_element_by_id('EditSearchCartId')
+		# self.cart_id = cart.get_attribute('value')
+
+		# self.tripdata = b.execute_script(fetch_js)
+
+		# # we get "access denied" after 3 requests made in this way,
+		# # so we're reloading the home page each time to start over.
+		# # this is very slow.
+		# b.get('https://www.united.com/web/en-US')
+		# b.homepage=True
 
 
 if __name__ == "__main__":
-	b = ual_browser(sys.argv[1], sys.argv[2], headless=False, logging=True)
-	data = ['5/22/18','SFO','AUS','','FX','True']
-	params = alert_params(*data)
-	S = ual_selenium_session(b)
-	S.search(params)
-	S.extract_json_data()
-	print(S.trips)
 
-	data2 = ['1/22/18','LHR','SFO','','OIR','True']
+	b = ual_browser(headless=False, logging=True)
+	S = ual_selenium_session(b)
+	# data = ['5/22/18','SFO','AUS','','FX',True]
+	# params = alert_params(*data)
+	# S.search(params)
+	# S.extract_html_data()
+	# for t in S.trips:
+	# 	print t
+
+	data2 = ['1/5/18','LAX','SFO','','OIR',True]
 	S.search(alert_params(*data2))
-	S.extract_json_data()
-	print(S.trips)
+	S.extract_html_data()
+	for t in S.trips: print t
 

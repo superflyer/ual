@@ -11,6 +11,7 @@ import sys
 import argparse
 
 from ual import *
+from ual_functions import format_aircraft
 
 app = Bottle()
 
@@ -111,9 +112,9 @@ def query_submit():
 						useragent=config['spoofUA'], search_type=current_search_type)
 
 		# last session timed out
-		if S.browser.last_login_time < datetime.now() - timedelta(minutes=30) or ual_search_type == "No-expert":
-			S.browser.get_homepage()
-			S.browser.login(config['ual_user'], config['ual_pwd'])
+		# if S.browser.last_login_time < datetime.now() - timedelta(minutes=30) or ual_search_type == "No-expert":
+		# 	S.browser.get_homepage()
+		# 	S.browser.login(config['ual_user'], config['ual_pwd'])
 
 		# do the search
 		result = S.basic_search(params)

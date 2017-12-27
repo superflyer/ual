@@ -57,7 +57,7 @@ class ual_session(requests.Session):
 				'Connection' : 'keep-alive'
 			})
 
-
+		return
 
 		# load the united.com home page
 		if logging:
@@ -113,7 +113,7 @@ class ual_session(requests.Session):
 			data=login_params, allow_redirects=True, headers=self.headers)
 
 
-	def search(self, params):
+	def search_json(self, params):
 		"""Perform flight search on new united.com.  Response is stored in self.search_results."""
 
 		search_params = new_search_params(params.depart_airport, params.arrive_airport, params.depart_date)
@@ -152,9 +152,13 @@ class ual_session(requests.Session):
 		if self.logging:
 			print("Loading search results")
 		self.headers.update({'Content-Type':'application/json'})
-		self.search_results = self.post('https://www.united.com/ual/en/us/flight-search/book-a-flight/flightshopping/getflightresults/rev',
+		self.search_results = self.post(
+			'https://www.united.com/ual/en/us/flight-search/book-a-flight/flightshopping/getflightresults/rev',
 			data=search_params_full,
-			allow_redirects=True, headers=self.headers)
+			allow_redirects=True,
+			headers=self.headers,
+			cookies=params.cookies,
+		)
 		self.search_datetime = params.depart_datetime
 		# all of the data is in search_results in nice json form!
 		if self.logging:
@@ -216,10 +220,58 @@ class ual_session(requests.Session):
 				all([seg.flightno[:2]=='UA' and seg.flightno[-1]!=')' for seg in t])]
 
 
+	def extract_html_data(self):
+		soup = bs4.BeautifulSoup(self.search_results,'lxml')
+		trips = soup.findAll(attrs={"class": "flight-block"})
+
+		alltrips = []
+		for t in trips:
+			depart = t.findAll(attrs={"class": "flight-time-depart"})
+			arrive = t.findAll(attrs={"class": "flight-time-arrive"})
+			segmentdtl = t.findAll(attrs={"class": "flight-block-tab-list"})
+			upgrade = t.find(attrs={"class": "upgrade-available"})
+			segs = zip(depart,arrive,segmentdtl)
+			tripdata = []
+			for s in segs:
+				flight_data = json.loads(s[2].contents[3]['data-seat-select'])['Flights'][0]
+				newseg = Segment()
+				if upgrade:
+					newseg.availability = ['R1+']
+				else:
+					newseg.availability = ['R0']
+				# deptime = s[0].find(attrs={"class": "timeDepart"})
+				newseg.depart_date,newseg.depart_time = flight_data['FlightDate'].split(' ')
+				newseg.depart_airport = flight_data['Origin']
+				# arrtime = s[1].find(attrs={"class": "timeArrive"})
+				newseg.arrive_time = s[1].find(text=re.compile('[0-2]?[0-9]:[0-9]{2} (a|p)m')).strip()
+				arrdate = s[1].find(attrs={"class" : "date-duration"})
+				if arrdate:
+					print(newseg.depart_date)
+					print(arrdate.text)
+					arrive_year = int(newseg.depart_date[-4:])
+					if newseg.depart_date[:2] == '12' and arrdate.text[5:8] == 'Jan':
+						arrive_year += 1
+					elif newseg.depart_date[:2] == '01' and arrdate.text[5:8] == 'Dec':
+						arrive_year -= 1
+					newseg.arrive_date = arrdate.text + ' ' + str(arrive_year)
+				else:
+					newseg.arrive_date = newseg.depart_date
+				newseg.arrive_airport = flight_data['Destination']
+				newseg.flightno = flight_data['CarrierCode'] + flight_data['FlightNumber']
+				newseg.aircraft = format_aircraft(flight_data['EquipmentDescription'])
+				newseg.search_datetime = self.search_datetime
+				tripdata.append(newseg)
+			alltrips.append(tripdata)
+		self.trips = alltrips
+		if self.ua_only:
+			self.trips = [t for t in self.trips if
+				all([seg.flightno[:2]=='UA' and seg.flightno[-1]!=')' for seg in t])]
+
+
 	def alert_search(self,params):
 		"""Perform the search specified by params and return results matching the specified fare buckets."""
 		self.search(params)
-		self.extract_json_data()
+		self.extract_html_data()
 		found_segs = []
 		for t in self.trips:
 			if params.nonstop and len(t) > 1:
@@ -237,7 +289,7 @@ class ual_session(requests.Session):
 	def basic_search(self,params):
 		"""Perform the search specified by params and return all results."""
 		self.search(params)
-		self.extract_json_data()
+		self.extract_html_data()
 		# the following is for logging only
 		for trip in self.trips:
 			for seg in trip:

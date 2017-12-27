@@ -1,8 +1,8 @@
 #start_date	end_date	dep	arr	flightno	buckets
-1/1/18	5/1/18	SFO	EWR		RI
-1/1/18	5/1/18	LAX	EWR		RI
-1/1/18	5/1/18	EWR	SFO		RI
-1/1/18	5/1/18	EWR	LAX		RI
+#1/1/18	5/1/18	SFO	EWR		RI
+#1/1/18	5/1/18	LAX	EWR		RI
+#1/1/18	5/1/18	EWR	SFO		RI
+#1/1/18	5/1/18	EWR	LAX		RI
 6/29/18	7/3/18	SFO	FRA		OI
 6/29/18	7/3/18	SFO	MUC		OI
 6/29/18	7/3/18	SFO	LHR		OI

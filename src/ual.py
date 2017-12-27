@@ -118,6 +118,7 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 			try:
 				segs = ses.alert_search(a)
 			except Exception as e:
+				raise
 				if aggregate:
 					errors.append((a, str(e.args)))
 				else:
