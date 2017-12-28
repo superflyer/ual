@@ -68,6 +68,7 @@ class ual_browser(webdriver.Chrome):
 	def get_startpage(self, wait=True):
 		self.delete_all_cookies()
 		self.get('https://www.united.com/ual/en/us/flight-search/book-a-flight')
+		self.first_page = True
 		if wait:
 			self.wait_for_load(
 				'//*[@id="btn-search"]',
@@ -183,7 +184,7 @@ class ual_selenium_session(ual_session):
 		ual_session.__init__(self, logging=browser.logging, ua_only=browser.ua_only)
 		self.browser = browser
 		self.debug = browser.debug
-		self.first_page = True
+		browser.first_page = True
 
 
 	def __enter__(self):
@@ -202,7 +203,7 @@ class ual_selenium_session(ual_session):
 		self.search_datetime = params.depart_datetime
 
 
-		if self.first_page:
+		if b.first_page:
 			Origin = b.find_element_by_id('Trips_0__Origin')
 			Destination = b.find_element_by_id('Trips_0__Destination')
 			DepartDate = b.find_element_by_id('Trips_0__DepartDate')
@@ -223,10 +224,10 @@ class ual_selenium_session(ual_session):
 		b.replace_text(DepartDate, params.depart_date + Keys.TAB)
 		b.replace_text(Origin, params.depart_airport + Keys.TAB)
 		b.replace_text(Destination, params.arrive_airport + Keys.TAB)
-		# b.execute_script(inject_js);
+
 		search_btn.click()
 
-		# if self.first_page:
+		# if b.first_page:
 		# 	b.wait_for_load(
 		# 		'//*[@id="ui-datepicker-div"]',
 		# 		)
@@ -242,26 +243,24 @@ class ual_selenium_session(ual_session):
 				'//*[@id="fl-results-loader-full"]/h2',
 				'Thank you for choosing United',
 			)
+			b.execute_script(inject_js);
 			b.wait_for_load(
 				'//*[@id="flight-result-list-revised"]/li[1]/div[2]',
 				logfile='search_results.html',
 			)
-			self.first_page = False
+			b.first_page = False
 		except AuthorizationError:
-			if self.first_page:
+			if b.first_page:
 				raise
 			else:
 				stderr.write('Access denied, retrying\n')
 				b.get_startpage()
-				self.first_page = True
+				b.first_page = True
 				self.search(params)
 
 		self.search_results = b.page_source
-		# cart = b.find_element_by_id('EditSearchCartId')
-		# self.cart_id = cart.get_attribute('value')
 
-		# self.tripdata = b.execute_script(fetch_js)
-
+		self.tripdata = b.execute_script(fetch_js)
 		# # we get "access denied" after 3 requests made in this way,
 		# # so we're reloading the home page each time to start over.
 		# # this is very slow.

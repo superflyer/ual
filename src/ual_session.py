@@ -269,7 +269,10 @@ class ual_session(requests.Session):
 	def alert_search(self,params):
 		"""Perform the search specified by params and return results matching the specified fare buckets."""
 		self.search(params)
-		self.extract_html_data()
+		try:
+			self.extract_json_data()
+		except:
+			self.extract_html_data()
 		found_segs = []
 		for t in self.trips:
 			if params.nonstop and len(t) > 1:
@@ -287,7 +290,10 @@ class ual_session(requests.Session):
 	def basic_search(self,params):
 		"""Perform the search specified by params and return all results."""
 		self.search(params)
-		self.extract_html_data()
+		try:
+			self.extract_json_data()
+		except:
+			self.extract_html_data()
 		# the following is for logging only
 		for trip in self.trips:
 			for seg in trip:

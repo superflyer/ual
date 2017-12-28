@@ -130,7 +130,6 @@ def query_submit():
 
 	params.timedelta = timedelta
 	S.browser.get_startpage(wait=False)
-	S.first_page=True
 	return template("templates/results", params=params, data=sorted_result)
 
 if __name__=='__main__':

@@ -119,6 +119,7 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 			try:
 				print(a)
 				segs = ses.alert_search(a)
+				ses.browser.get_startpage()
 			except Exception as e:
 				raise
 				if aggregate:
