@@ -6,6 +6,7 @@ import argparse
 
 from datetime import datetime, timedelta
 from itertools import chain
+from time import sleep
 
 from ual_selenium import *
 from ual_session import *
@@ -44,11 +45,11 @@ def configure(config_file='ual.config'):
 	return config
 
 
-def open_session(config, search_type=None, ua_only=False, logging=False):
+def open_session(config, search_type=None, ua_only=False, logging=False, debug=False):
 	# search_type parameter is ignored for now
 	# open session in selenium and log in
 	browser = ual_browser(config['ual_user'],config['ual_pwd'],
-		headless=True, ua_only=ua_only, logging=logging)
+		headless=not debug, ua_only=ua_only, logging=logging, debug=debug)
 
 	# pass the parameters into a requests session
 	ses = ual_selenium_session(browser)
@@ -73,14 +74,14 @@ def send_aggregate_results(config, results=None, errors=None):
 
 
 def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
-	ua_only=False, logging=False, search_type=None):
+	ua_only=False, logging=False, search_type=None, debug=False):
 	"""If no output file is specified then send email to address specified in config.
 	   If site_version is specified then the script will repeatedly log in until the specified site version is obtained
 	   (up to max_retries times).
 	"""
 
 	with open_session(config, ua_only=ua_only, logging=logging,
-		search_type=search_type) as ses:
+		search_type=search_type, debug=debug) as ses:
 
 		# read alert defs
 		with open(filename,'r') as F:
@@ -116,6 +117,7 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 		for a in alert_defs:
 			# search for alerts
 			try:
+				print(a)
 				segs = ses.alert_search(a)
 			except Exception as e:
 				raise
@@ -146,9 +148,11 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 			e, e1 = send_aggregate_results(config, results, errors)
 
 
-def run_mr_search(config, filename='alerts/mr_searches.txt', logging=False, search_type=None):
+def run_mr_search(config, filename='alerts/mr_searches.txt', logging=False,
+		search_type=None, debug=False):
 	"""Performs a mileage run search using parameters specified in the given file."""
-	ses = open_session(config, ua_only=True, logging=logging, search_type=search_type)
+	ses = open_session(config, ua_only=True, logging=logging, search_type=search_type,
+		debug=debug)
 	mr_searches = parse_mr_file(filename)
 	print datetime.today().strftime('%c')
 	for m in mr_searches:
@@ -179,17 +183,13 @@ if __name__=='__main__':
 	argparser.add_argument("-u", action="store_true", help="search for United-operated flights only")
 	argparser.add_argument("-o", metavar="output_file", type=str, help="filename to store results")
 	argparser.add_argument('-s', metavar="email_subject", type=str, help="subject to be sent in emails")
+	argparser.add_argument("-d", action="store_true", help="debugging mode")
 	argparser.add_argument("--suppress_errors", action="store_true", help="don't send error emails")
 
 	# delivery methods
 	recipient = argparser.add_mutually_exclusive_group()
 	recipient.add_argument("-t", action="store_true", help="send text message instead of email")
 	recipient.add_argument("-e", metavar="email_address", type=str, help="email address to send results to")
-
-	# site version
-	version = argparser.add_mutually_exclusive_group()
-	version.add_argument('--force_old_site', action='store_true')
-	version.add_argument('--force_new_site', action='store_true')
 
 	# search for award or upgrades only
 	ual_search_type = argparser.add_mutually_exclusive_group()
@@ -217,22 +217,8 @@ if __name__=='__main__':
 	# configure email subject
 	config['email_subject'] = args.s if args.s else None
 
-	# set logging
-	logging = args.v
-
-	# set ua-only flag:
-	ua_only = args.u
-
 	# suppress errors
 	config['suppress_errors'] = args.suppress_errors
-
-	# configure the site version
-	if args.force_old_site:
-		site_version = "Old"
-	elif args.force_new_site:
-		site_version = "New"
-	else:
-		site_version = None
 
 	# Use when looking for partner awards or when expert mode is broken
 	if args.upgrade:
@@ -244,15 +230,13 @@ if __name__=='__main__':
 
 	# run the alerts
 	alert_file = args.alert_file if args.alert_file else 'alerts/alert_defs.txt'
-	if args.a:
-		run_alerts(config, filename=alert_file, aggregate=True,
-			ua_only=ua_only, logging=logging, search_type=ual_search_type)
-	elif args.m:
+	if args.m:
 		run_mr_search(config, filename=alert_file, logging=logging,
-			search_type=ual_search_type)
+			search_type=ual_search_type, debug=debug)
 	else:
-		run_alerts(config, filename=alert_file,
-			ua_only=ua_only, logging=logging, search_type=ual_search_type)
+		run_alerts(config, filename=alert_file, aggregate=args.a,
+			ua_only=args.u, logging=args.v, search_type=ual_search_type,
+			debug=args.d)
 
 
 

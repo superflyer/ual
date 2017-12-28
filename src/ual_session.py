@@ -246,8 +246,6 @@ class ual_session(requests.Session):
 				newseg.arrive_time = s[1].find(text=re.compile('[0-2]?[0-9]:[0-9]{2} (a|p)m')).strip()
 				arrdate = s[1].find(attrs={"class" : "date-duration"})
 				if arrdate:
-					print(newseg.depart_date)
-					print(arrdate.text)
 					arrive_year = int(newseg.depart_date[-4:])
 					if newseg.depart_date[:2] == '12' and arrdate.text[5:8] == 'Jan':
 						arrive_year += 1

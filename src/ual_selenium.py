@@ -13,6 +13,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import sys
+from time import sleep
 from ual_session import *
 from ual_functions import *
 
@@ -42,7 +43,7 @@ fetch_js = "return JSON.stringify(RESULTS);"
 
 
 class ual_browser(webdriver.Chrome):
-	def __init__(self, user=None, pwd=None, headless=True, ua_only=False, logging=False):
+	def __init__(self, user=None, pwd=None, headless=True, ua_only=False, logging=False, debug=False):
 
 		# set options and initialize
 		if logging:
@@ -57,14 +58,22 @@ class ual_browser(webdriver.Chrome):
 		self.ua_only = ua_only
 		self.logging = logging
 		self.last_login_time = datetime.min
+		self.debug = debug
 
 		if self.logging:
 			stdout.write("Loading united.com booking page.\n")
+		self.get_startpage()
+
+
+	def get_startpage(self, wait=True):
+		self.delete_all_cookies()
 		self.get('https://www.united.com/ual/en/us/flight-search/book-a-flight')
-		self.wait_for_load(
-			'//*[@id="btn-search"]',
-			logfile='searchpage.html',
-		)
+		if wait:
+			self.wait_for_load(
+				'//*[@id="btn-search"]',
+				text='Book',
+				logfile='searchpage.html',
+			)
 
 		# self.get_search_page()
 		# self.get_homepage()
@@ -72,14 +81,19 @@ class ual_browser(webdriver.Chrome):
 		# self.answer_questions()
 
 
-	def wait_for_load(self, xpath, text=None, wait_time_seconds=20, logfile=None):
+	def wait_for_load(self, xpath, text=None, wait_time_seconds=20, logfile=None,
+			denied_xpath = '/html/body/h1'
+	):
 		loaded = WebDriverWait(self, wait_time_seconds).until(
-		    EC.text_to_be_present_in_element(
-		    	(By.XPATH, xpath),
-		    	text
-		    ) if text else
-		    EC.presence_of_element_located((By.XPATH, xpath))
+		    EC.presence_of_element_located((By.XPATH, xpath + ' | ' + denied_xpath))
 		)
+		if text:
+			loaded = EC.text_to_be_present_in_element(
+			    	(By.XPATH, xpath),
+			    	text,
+			)
+		if 'Access Denied' in self.page_source:
+			raise AuthorizationError(self.current_url)
 		if not loaded:
 			stderr.write("Timeout waiting for response\n")
 		if self.logging and logfile:
@@ -168,7 +182,7 @@ class ual_selenium_session(ual_session):
 	def __init__(self, browser):
 		ual_session.__init__(self, logging=browser.logging, ua_only=browser.ua_only)
 		self.browser = browser
-		self.debug = False
+		self.debug = browser.debug
 		self.first_page = True
 
 
@@ -216,21 +230,31 @@ class ual_selenium_session(ual_session):
 		# 	b.wait_for_load(
 		# 		'//*[@id="ui-datepicker-div"]',
 		# 		)
-		self.first_page = False
 		# if params.nonstop:
 		# 	b.wait_for_load(
 		# 		'//*[@id="flight-result-list-revised"]/li[1]/div[2]',
 		# 		logfile='search_results.html',
 		# 	)
 		# else:
-		b.wait_for_load(
-			'//*[@id="fl-results-loader-full"]/h2',
-			'Thank you for choosing United',
-		)
-		b.wait_for_load(
-			'//*[@id="flight-result-list-revised"]/li[1]/div[2]',
-			logfile='search_results.html',
-		)
+
+		try:
+			b.wait_for_load(
+				'//*[@id="fl-results-loader-full"]/h2',
+				'Thank you for choosing United',
+			)
+			b.wait_for_load(
+				'//*[@id="flight-result-list-revised"]/li[1]/div[2]',
+				logfile='search_results.html',
+			)
+			self.first_page = False
+		except AuthorizationError:
+			if self.first_page:
+				raise
+			else:
+				stderr.write('Access denied, retrying\n')
+				b.get_startpage()
+				self.first_page = True
+				self.search(params)
 
 		self.search_results = b.page_source
 		# cart = b.find_element_by_id('EditSearchCartId')
@@ -243,6 +267,16 @@ class ual_selenium_session(ual_session):
 		# # this is very slow.
 		# b.get('https://www.united.com/web/en-US')
 		# b.homepage=True
+
+
+class AuthorizationError(Exception):
+    """Exception raised for authorization errors to united.com
+
+    Attributes:
+        url -- url of the error
+    """
+    def __init__(self, url):
+    	stderr.write('Access denied to ' + url + '\n')
 
 
 if __name__ == "__main__":
