@@ -38,10 +38,11 @@ def query_form():
 	print(params)
 	return template("templates/query", today=datetime.today(), params=params)
 
+
 @app.route('/searchresults', method='POST')
 def query_submit():
 	global S
-	global site_version, max_retries, ual_search_type
+	global ual_search_type
 
 	depart_airport = request.forms.get('departAirport')
 	arrive_airport = request.forms.get('arriveAirport')
@@ -94,7 +95,7 @@ def query_submit():
 		raw_data = F.read()
 		F.close()
 		# need to mock up a session
-		result = extract_data(raw_data)
+		result = extract_html_data(raw_data)
 		for trip in result:
 			for seg in trip:
 				seg.format_deptime()
@@ -112,9 +113,8 @@ def query_submit():
 						useragent=config['spoofUA'], search_type=current_search_type)
 
 		# last session timed out
-		# if S.browser.last_login_time < datetime.now() - timedelta(minutes=30) or ual_search_type == "No-expert":
-		# 	S.browser.get_homepage()
-		# 	S.browser.login(config['ual_user'], config['ual_pwd'])
+		if S.browser.last_refresh_time < datetime.now() - timedelta(minutes=30):
+			S.browser.get_startpage()
 
 		# do the search
 		result = S.basic_search(params)
@@ -123,27 +123,29 @@ def query_submit():
 			result = [t for t in result if len(t)==1]
 		sorted_result = sorted(result, key=lambda x: (len(x), x[0].depart_datetime))
 
-
 	#logging
 	sys.stdout.write(strftime("%Y-%m-%d %H:%M:%S", localtime())+'\n')
 	sys.stdout.flush()
 
+	# need to pass this function to the results template
 	params.timedelta = timedelta
+
 	S.browser.get_startpage(wait=False)
 	return template("templates/results", params=params, data=sorted_result)
 
+
 if __name__=='__main__':
 
-	argparser = argparse.ArgumentParser(description='Web app to search united.com for flight availability.')
-	argparser.add_argument("-l", action="store_true", help="run on localhost")
-	argparser.add_argument("-t", action="store_true", help="run in testing mode")
-	argparser.add_argument('-c', metavar="config_file", default="ual.config", type=str, help="filename containing configuration parameters (default: ual.config)")
-	argparser.add_argument('-p', metavar="port", default="80", type=int, help="port on which to run web server (default: 80)")
-
-	# site version -- deprecated
-	# version = argparser.add_mutually_exclusive_group()
-	# version.add_argument('--force_old_site', action='store_true')
-	# version.add_argument('--force_new_site', action='store_true')
+	argparser = argparse.ArgumentParser(
+		description='Web app to search united.com for flight availability.')
+	argparser.add_argument("-l", action="store_true",
+		help="run on localhost")
+	argparser.add_argument("-t", action="store_true",
+		help="run in testing mode")
+	argparser.add_argument('-c', metavar="config_file", default="ual.config", type=str,
+		help="filename containing configuration parameters (default: ual.config)")
+	argparser.add_argument('-p', metavar="port", default="80", type=int,
+		help="port on which to run web server (default: 80)")
 
 	# search for award or upgrades only
 	ual_search_type = argparser.add_mutually_exclusive_group()
@@ -151,27 +153,16 @@ if __name__=='__main__':
 
 	args = argparser.parse_args()
 
-	# configure the site version, hold it in a global variable -- deprecated
-	# if args.force_old_site:
-	# 	site_version = "Old"
-	# elif args.force_new_site:
-	# 	site_version = "New"
-	# else:
-	# 	site_version = None
-
 	# Use when looking for partner awards or when expert mode is broken; hold this in a global variable
 	if args.noexpert:
-		ual_search_type = 'No-Expert'
+		search_type = 'No-Expert'
 	else:
-		ual_search_type = None
+		search_type = None
 
 	# global variable to hold session
-	if not args.t:
-		config = configure(args.c)
-		S = open_session(config, search_type=ual_search_type)
-		S.last_search_type = None
-
-	if args.l:
-		run(app, host='localhost', port=args.p, reloader=True)
-	else:
-		run(app, host='0.0.0.0', port=args.p)
+	config = configure(args.c)
+	with open_session(config, search_type=search_type) as S:
+		if args.l:
+			run(app, host='localhost', port=args.p, reloader=True)
+		else:
+			run(app, host='0.0.0.0', port=args.p)

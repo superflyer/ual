@@ -6,6 +6,7 @@ import re
 import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.alert import Alert
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
@@ -69,6 +70,7 @@ class ual_browser(webdriver.Chrome):
 		self.delete_all_cookies()
 		self.get('https://www.united.com/ual/en/us/flight-search/book-a-flight')
 		self.first_page = True
+		self.last_refresh_time = datetime.now()
 		if wait:
 			self.wait_for_load(
 				'//*[@id="btn-search"]',
@@ -202,7 +204,6 @@ class ual_selenium_session(ual_session):
 			stdout.write("Searching for " + str(params) + "\n")
 		self.search_datetime = params.depart_datetime
 
-
 		if b.first_page:
 			Origin = b.find_element_by_id('Trips_0__Origin')
 			Destination = b.find_element_by_id('Trips_0__Destination')
@@ -221,10 +222,11 @@ class ual_selenium_session(ual_session):
 			DepartDate = b.find_element_by_id("DepartDate")
 			search_btn = b.find_elements_by_xpath('//*[@id="flightSearch"]/fieldset/div/div[2]/div/div[2]/button')[0]
 
+
+
 		b.replace_text(DepartDate, params.depart_date + Keys.TAB)
 		b.replace_text(Origin, params.depart_airport + Keys.TAB)
 		b.replace_text(Destination, params.arrive_airport + Keys.TAB)
-
 		search_btn.click()
 
 		# if b.first_page:
