@@ -8,6 +8,9 @@ from datetime import datetime, timedelta
 from itertools import chain
 from time import sleep
 
+from selenium.common.exceptions import UnexpectedAlertPresentException
+from selenium.webdriver.common.alert import Alert
+
 from ual_selenium import *
 from ual_session import *
 from ual_mileagerun import *
@@ -120,8 +123,12 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 				print(a)
 				segs = ses.alert_search(a)
 				ses.browser.get_startpage()
+			except UnexpectedAlertPresentException as e:
+				stderr.write('Received alert: ' + str(e.alert_text))
+				Alert(ses.browser).accept()
+				ses.browser.get_startpage()
+				continue
 			except Exception as e:
-				raise
 				if aggregate:
 					errors.append((a, str(e.args)))
 				else:

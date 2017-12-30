@@ -2,6 +2,8 @@ import requests
 import bs4
 import codecs
 import uuid
+from random import random
+from time import sleep
 
 from ual_functions import *
 from ual_params import *
@@ -221,7 +223,7 @@ class ual_session(requests.Session):
 
 
 	def extract_html_data(self):
-		soup = bs4.BeautifulSoup(self.search_results,'lxml')
+		soup = bs4.BeautifulSoup(self.search_results, 'lxml')
 		trips = soup.findAll(attrs={"class": "flight-block"})
 
 		alltrips = []
@@ -230,7 +232,7 @@ class ual_session(requests.Session):
 			arrive = t.findAll(attrs={"class": "flight-time-arrive"})
 			segmentdtl = t.findAll(attrs={"class": "flight-block-tab-list"})
 			upgrade = t.find(attrs={"class": "upgrade-available"})
-			segs = zip(depart,arrive,segmentdtl)
+			segs = zip(depart, arrive, segmentdtl)
 			tripdata = []
 			for s in segs:
 				flight_data = json.loads(s[2].contents[3]['data-seat-select'])['Flights'][0]
@@ -266,7 +268,7 @@ class ual_session(requests.Session):
 				all([seg.flightno[:2]=='UA' and seg.flightno[-1]!=')' for seg in t])]
 
 
-	def alert_search(self,params):
+	def alert_search(self, params):
 		"""Perform the search specified by params and return results matching the specified fare buckets."""
 		self.search(params)
 		try:
@@ -282,12 +284,11 @@ class ual_session(requests.Session):
 				if not params.flightno or seg.flightno in params.flightno:
 					found_segs.append(seg)
 		if len(found_segs)==0:
-			failed = self.search(params)
 			raise Exception('No results found for '+str(params))
 		return found_segs
 
 
-	def basic_search(self,params):
+	def basic_search(self, params):
 		"""Perform the search specified by params and return all results."""
 		self.search(params)
 		try:
