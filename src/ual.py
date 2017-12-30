@@ -6,6 +6,7 @@ import argparse
 
 from datetime import datetime, timedelta
 from itertools import chain
+from random import random
 from time import sleep
 
 from selenium.common.exceptions import UnexpectedAlertPresentException
@@ -123,8 +124,9 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 				print(a)
 				segs = ses.alert_search(a)
 				ses.browser.get_startpage()
+				sleep(5*random())
 			except UnexpectedAlertPresentException as e:
-				stderr.write('Received alert: ' + str(e.alert_text))
+				stderr.write('Received alert: ' + str(e.alert_text) + '\n')
 				Alert(ses.browser).accept()
 				ses.browser.get_startpage()
 				continue
