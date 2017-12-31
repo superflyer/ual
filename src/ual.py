@@ -6,7 +6,7 @@ import argparse
 
 from datetime import datetime, timedelta
 from itertools import chain
-from random import random
+from random import random, shuffle
 from time import sleep
 
 from selenium.common.exceptions import UnexpectedAlertPresentException
@@ -84,58 +84,66 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 	   (up to max_retries times).
 	"""
 
+
+	# read alert defs
+	with open(filename,'r') as F:
+		alert_defs = []
+		for line in F:
+			try:
+				data = line.strip().split('\t')
+				if len(data) < 3 or data[0][0]=='#': continue
+				if aggregate:
+					end_date = data.pop(1)
+				else:
+					end_date = data[0]
+				a = alert_params(*data)
+				a.nonstop=True
+				cur_datetime = parser.parse(data[0])
+				while cur_datetime <= parser.parse(end_date):
+					# if doing an aggregate search, copy the search definition for each day
+					b = a.copy()
+					b.depart_date = cur_datetime.strftime('%m/%d/%y')
+					b.depart_datetime = cur_datetime
+					alert_defs.append(b)
+					cur_datetime += timedelta(1)
+			except ValueError as e:
+				stderr.write('Error parsing alert definition: '+line+ '  (' + str(e) + ')\n')
+				continue
+			except:
+				stderr.write('Error parsing alert definition: '+line)
+				continue
+
+	print datetime.today().strftime('%c')
+	results = []
+	errors = []
+	alert_delay = 1
+	shuffle(alert_defs)
+
 	with open_session(config, ua_only=ua_only, logging=logging,
 		search_type=search_type, debug=debug) as ses:
-
-		# read alert defs
-		with open(filename,'r') as F:
-			alert_defs = []
-			for line in F:
-				try:
-					data = line.strip().split('\t')
-					if len(data) < 3 or data[0][0]=='#': continue
-					if aggregate:
-						end_date = data.pop(1)
-					else:
-						end_date = data[0]
-					a = alert_params(*data)
-					a.nonstop=True
-					cur_datetime = parser.parse(data[0])
-					while cur_datetime <= parser.parse(end_date):
-						# if doing an aggregate search, copy the search definition for each day
-						b = a.copy()
-						b.depart_date = cur_datetime.strftime('%m/%d/%y')
-						b.depart_datetime = cur_datetime
-						alert_defs.append(b)
-						cur_datetime += timedelta(1)
-				except ValueError as e:
-					stderr.write('Error parsing alert definition: '+line+ '  (' + str(e) + ')\n')
-					continue
-				except:
-					stderr.write('Error parsing alert definition: '+line)
-					continue
-
-		print datetime.today().strftime('%c')
-		results = []
-		errors = []
 		for a in alert_defs:
 			# search for alerts
 			try:
 				print(a)
 				segs = ses.alert_search(a)
+				sleep(5*random() + alert_delay)
+				alert_delay /= 1.2
 				ses.browser.get_startpage()
-				sleep(5*random())
 			except UnexpectedAlertPresentException as e:
 				stderr.write('Received alert: ' + str(e.alert_text) + '\n')
 				Alert(ses.browser).accept()
+				sleep(5*random() + alert_delay)
 				ses.browser.get_startpage()
+				if alert_delay < 600:
+					alert_delay *= 1.2
+					alert_defs.append(a)
 				continue
 			except Exception as e:
 				if aggregate:
-					errors.append((a, str(e.args)))
+					errors.append((a, str(e)))
 				else:
 					subject = 'Superflyer error'
-					message = 'Query: ' + str(a) + '\nException: ' + str(e.args)
+					message = 'Query: ' + str(a) + '\nException: ' + str(e)
 					stderr.write(subject+'\n'+message+'\n')
 					if not config['suppress_errors']:
 						send_email(subject,message,config)
