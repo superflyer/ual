@@ -117,7 +117,8 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 	results = []
 	errors = []
 	alert_delay = 1
-	shuffle(alert_defs)
+	# shuffle(alert_defs)
+	alert_defs.sort(key=lambda x: x.depart_date)
 
 	with open_session(config, ua_only=ua_only, logging=logging,
 		search_type=search_type, debug=debug) as ses:
