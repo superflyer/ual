@@ -44,6 +44,10 @@ def query_submit():
 	global S
 	global ual_search_type
 
+	if not S:
+		config = configure(args.c)
+		S = open_session(config, search_type=search_type)
+
 	depart_airport = request.forms.get('departAirport')
 	arrive_airport = request.forms.get('arriveAirport')
 	depart_month = request.forms.get('departMonth')
@@ -102,26 +106,18 @@ def query_submit():
 				seg.format_arrtime()
 				if params.buckets:
 					seg.search_buckets(params.buckets)
-	else:
-		# expert mode broken and current search differs from last search
-		if ual_search_type == "No-Expert":
-			current_search_type = 'Award' if 'O' in params.buckets or 'X' in params.buckets \
-				or 'I' in params.buckets else 'Upgrade'
-			if current_search_type != S.search_type:
-				config = configure(args.c)
-				S = ual_session(config['ual_user'], config['ual_pwd'],
-						useragent=config['spoofUA'], search_type=current_search_type)
+		return
 
-		# last session timed out
-		if S.browser.last_refresh_time < datetime.now() - timedelta(minutes=30):
-			S.browser.get_startpage()
+	# last session timed out
+	if S.browser.last_refresh_time < datetime.now() - timedelta(minutes=30):
+		S.browser.get_startpage()
 
-		# do the search
-		result = S.basic_search(params)
-		# can't be sure that nonstop flag works
-		if params.nonstop:
-			result = [t for t in result if len(t)==1]
-		sorted_result = sorted(result, key=lambda x: (len(x), x[0].depart_datetime))
+	# do the search
+	result = S.basic_search(params)
+	# can't be sure that nonstop flag works
+	if params.nonstop:
+		result = [t for t in result if len(t)==1]
+	sorted_result = sorted(result, key=lambda x: (len(x), x[0].depart_datetime))
 
 	#logging
 	sys.stdout.write(strftime("%Y-%m-%d %H:%M:%S", localtime())+'\n')
@@ -161,8 +157,8 @@ if __name__=='__main__':
 
 	# global variable to hold session
 	config = configure(args.c)
-	with open_session(config, search_type=search_type) as S:
-		if args.l:
-			run(app, host='localhost', port=args.p, reloader=True)
-		else:
-			run(app, host='0.0.0.0', port=args.p)
+	S = None
+	if args.l:
+		run(app, host='localhost', port=args.p, reloader=True)
+	else:
+		run(app, host='0.0.0.0', port=args.p)

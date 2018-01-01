@@ -209,36 +209,25 @@ class ual_selenium_session(ual_session):
 			Destination = b.find_element_by_id('Trips_0__Destination')
 			DepartDate = b.find_element_by_id('Trips_0__DepartDate')
 	 		OneWay = b.find_elements_by_xpath('//*[@id="search-summary-wrapper"]/fieldset[4]/div/div/div/label[2]')[0]
+	 		Award = b.find_elements_by_xpath('//*[@id="award-container"]/div/div/div[2]/label[2]')[0]
 			search_btn = b.find_element_by_id('btn-search')
-			if params.nonstop:
-				Nonstop = b.find_element_by_id("Trips_0__NonStop")
-				Nonstop.click()
-			OneWay.click()
+			Nonstop = b.find_element_by_id("Trips_0__NonStop")
 			Upgrade = b.find_element_by_id("select-upgrade-type")
-			Upgrade.send_keys('M' + Keys.ENTER)
+
+			if params.nonstop: Nonstop.click()
+			OneWay.click()
+			# Award.click()
+			# Upgrade.send_keys('M' + Keys.ENTER)
 		else:
 			Origin = b.find_element_by_id("Origin")
 			Destination = b.find_element_by_id("Destination")
 			DepartDate = b.find_element_by_id("DepartDate")
 			search_btn = b.find_elements_by_xpath('//*[@id="flightSearch"]/fieldset/div/div[2]/div/div[2]/button')[0]
 
-
-
 		b.replace_text(DepartDate, params.depart_date + Keys.TAB)
 		b.replace_text(Origin, params.depart_airport + Keys.TAB)
 		b.replace_text(Destination, params.arrive_airport + Keys.TAB)
 		search_btn.click()
-
-		# if b.first_page:
-		# 	b.wait_for_load(
-		# 		'//*[@id="ui-datepicker-div"]',
-		# 		)
-		# if params.nonstop:
-		# 	b.wait_for_load(
-		# 		'//*[@id="flight-result-list-revised"]/li[1]/div[2]',
-		# 		logfile='search_results.html',
-		# 	)
-		# else:
 
 		try:
 			b.wait_for_load(
@@ -261,13 +250,7 @@ class ual_selenium_session(ual_session):
 				self.search(params)
 
 		self.search_results = b.page_source
-
 		self.tripdata = b.execute_script(fetch_js)
-		# # we get "access denied" after 3 requests made in this way,
-		# # so we're reloading the home page each time to start over.
-		# # this is very slow.
-		# b.get('https://www.united.com/web/en-US')
-		# b.homepage=True
 
 
 class AuthorizationError(Exception):
