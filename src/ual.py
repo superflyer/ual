@@ -127,8 +127,7 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 			try:
 				print(a)
 				segs = ses.alert_search(a)
-				sleep(5*random() + alert_delay)
-				alert_delay /= 1.2
+				sleep(len(alert_defs)*random() + alert_delay)
 				ses.browser.get_startpage()
 			except UnexpectedAlertPresentException as e:
 				stderr.write('Received alert: ' + str(e.alert_text) + '\n')
