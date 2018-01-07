@@ -52,8 +52,8 @@ def configure(config_file='ual.config'):
 def open_session(config, search_type=None, ua_only=False, logging=False, debug=False):
 	# search_type parameter is ignored for now
 	# open session in selenium and log in
-	browser = ual_browser(config['ual_user'],config['ual_pwd'],
-		headless=not debug, ua_only=ua_only, logging=logging, debug=debug)
+	browser = ual_browser(search_type=search_type, 	headless=not debug,
+		ua_only=ua_only, logging=logging, debug=debug)
 
 	# pass the parameters into a requests session
 	ses = ual_selenium_session(browser)
@@ -80,10 +80,7 @@ def send_aggregate_results(config, results=None, errors=None):
 def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 	ua_only=False, logging=False, search_type=None, debug=False):
 	"""If no output file is specified then send email to address specified in config.
-	   If site_version is specified then the script will repeatedly log in until the specified site version is obtained
-	   (up to max_retries times).
 	"""
-
 
 	# read alert defs
 	with open(filename,'r') as F:
@@ -120,50 +117,51 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 	# shuffle(alert_defs)
 	alert_defs.sort(key=lambda x: x.depart_date)
 
-	with open_session(config, ua_only=ua_only, logging=logging,
-		search_type=search_type, debug=debug) as ses:
-		for a in alert_defs:
-			# search for alerts
+	#with
+	ses = open_session(config, ua_only=ua_only, logging=logging,
+	search_type=search_type, debug=debug)# as ses:
+	for a in alert_defs:
+		# search for alerts
+		try:
+			print(a)
+			segs = ses.alert_search(a)
+			sleep(len(alert_defs)*random() + alert_delay)
+			ses.browser.get_startpage()
+		except UnexpectedAlertPresentException as e:
+			stderr.write('Received alert: ' + str(e.alert_text) + '\n')
+			Alert(ses.browser).accept()
+			sleep(len(alert_defs)*random() + alert_delay)
+			ses.browser.get_startpage()
+			if alert_delay < 600:
+				alert_delay *= 1.2
+				alert_defs.append(a)
+			continue
+		except Exception as e:
+			if aggregate:
+				errors.append((a, str(e)))
+			else:
+				subject = 'Superflyer error'
+				message = 'Query: ' + str(a) + '\nException: ' + str(e)
+				stderr.write(subject+'\n'+message+'\n')
+				if not config['suppress_errors']:
+					send_email(subject,message,config)
+			continue
+		for seg in segs:
 			try:
-				print(a)
-				segs = ses.alert_search(a)
-				sleep(len(alert_defs)*random() + alert_delay)
-				ses.browser.get_startpage()
-			except UnexpectedAlertPresentException as e:
-				stderr.write('Received alert: ' + str(e.alert_text) + '\n')
-				Alert(ses.browser).accept()
-				sleep(5*random() + alert_delay)
-				ses.browser.get_startpage()
-				if alert_delay < 600:
-					alert_delay *= 1.2
-					alert_defs.append(a)
+				print(seg.condensed_repr())
+			except:
+				print(seg)
+				stderr.write('Error getting string representation of segment.\n')
 				continue
-			except Exception as e:
-				if aggregate:
-					errors.append((a, str(e)))
-				else:
-					subject = 'Superflyer error'
-					message = 'Query: ' + str(a) + '\nException: ' + str(e)
-					stderr.write(subject+'\n'+message+'\n')
-					if not config['suppress_errors']:
-						send_email(subject,message,config)
-				continue
-			for seg in segs:
-				try:
-					print(seg.condensed_repr())
-				except:
-					print(seg)
-					stderr.write('Error getting string representation of segment.\n')
-					continue
-				if seg.search_results and max(seg.search_results.values()) > 0:
-					results.append(seg)
-					if not aggregate:
-						subject = config['email_subject'] if config['email_subject'] else 'Results for '+str(a)
-						message = 'Query: '+str(a)+'\nResults: '+seg.condensed_repr()
-						send_email(subject,message,config)
+			if seg.search_results and max(seg.search_results.values()) > 0:
+				results.append(seg)
+				if not aggregate:
+					subject = config['email_subject'] if config['email_subject'] else 'Results for '+str(a)
+					message = 'Query: '+str(a)+'\nResults: '+seg.condensed_repr()
+					send_email(subject,message,config)
 
-		if aggregate:
-			e, e1 = send_aggregate_results(config, results, errors)
+	if aggregate:
+		e, e1 = send_aggregate_results(config, results, errors)
 
 
 def run_mr_search(config, filename='alerts/mr_searches.txt', logging=False,
@@ -209,11 +207,6 @@ if __name__=='__main__':
 	recipient.add_argument("-t", action="store_true", help="send text message instead of email")
 	recipient.add_argument("-e", metavar="email_address", type=str, help="email address to send results to")
 
-	# search for award or upgrades only
-	ual_search_type = argparser.add_mutually_exclusive_group()
-	ual_search_type.add_argument('--upgrade', action='store_true')
-	ual_search_type.add_argument('--award', action='store_true')
-
 	#positional arguments
 	argparser.add_argument('-c', metavar="config_file", default="ual.config", type=str, help="filename containing configuration parameters (default: ual.config)")
 	argparser.add_argument('alert_file', nargs='?', type=str, help='file containing alert definitions')	# metavar='file',
@@ -238,23 +231,13 @@ if __name__=='__main__':
 	# suppress errors
 	config['suppress_errors'] = args.suppress_errors
 
-	# Use when looking for partner awards or when expert mode is broken
-	if args.upgrade:
-		ual_search_type = 'Upgrade'
-	elif args.award:
-		ual_search_type = 'Award'
-	else:
-		ual_search_type = None
-
 	# run the alerts
 	alert_file = args.alert_file if args.alert_file else 'alerts/alert_defs.txt'
 	if args.m:
-		run_mr_search(config, filename=alert_file, logging=logging,
-			search_type=ual_search_type, debug=debug)
+		run_mr_search(config, filename=alert_file, logging=logging, debug=debug)
 	else:
 		run_alerts(config, filename=alert_file, aggregate=args.a,
-			ua_only=args.u, logging=args.v, search_type=ual_search_type,
-			debug=args.d)
+			ua_only=args.u, logging=args.v, debug=args.d)
 
 
 

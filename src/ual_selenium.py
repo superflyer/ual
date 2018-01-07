@@ -5,6 +5,7 @@ from datetime import datetime
 import re
 import requests
 from selenium import webdriver
+from selenium.common.exceptions import *
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.alert import Alert
 from selenium.webdriver.common.by import By
@@ -44,7 +45,7 @@ fetch_js = "return JSON.stringify(RESULTS);"
 
 
 class ual_browser(webdriver.Chrome):
-	def __init__(self, user=None, pwd=None, headless=True, ua_only=False, logging=False, debug=False):
+	def __init__(self, search_type=None, headless=True, ua_only=False, logging=False, debug=False):
 
 		# set options and initialize
 		if logging:
@@ -60,6 +61,7 @@ class ual_browser(webdriver.Chrome):
 		self.logging = logging
 		self.last_login_time = datetime.min
 		self.debug = debug
+		self.search_type = search_type
 
 		if self.logging:
 			stdout.write("Loading united.com booking page.\n")
@@ -194,8 +196,11 @@ class ual_selenium_session(ual_session):
 
 
 	def __exit__(self, type, value, traceback):
-		if not self.debug:
-			self.browser.quit()
+		if self.debug:
+			return
+		if isinstance(value, KeyboardInterrupt):
+			return
+		self.browser.quit()
 
 
 	def search(self, params):
@@ -216,7 +221,7 @@ class ual_selenium_session(ual_session):
 
 			if params.nonstop: Nonstop.click()
 			OneWay.click()
-			# Award.click()
+			if params.award: Award.click()
 			# Upgrade.send_keys('M' + Keys.ENTER)
 		else:
 			Origin = b.find_element_by_id("Origin")
@@ -228,6 +233,8 @@ class ual_selenium_session(ual_session):
 		b.replace_text(Origin, params.depart_airport + Keys.TAB)
 		b.replace_text(Destination, params.arrive_airport + Keys.TAB)
 		search_btn.click()
+		if logging:
+			stdout.write('Initiated search\n')
 
 		try:
 			b.wait_for_load(
@@ -238,8 +245,10 @@ class ual_selenium_session(ual_session):
 			b.wait_for_load(
 				'//*[@id="flight-result-list-revised"]/li[1]/div[2]',
 				logfile='search_results.html',
+				wait_time_seconds=10,
 			)
 			b.first_page = False
+			stdout.write('Results loaded\n')
 		except AuthorizationError:
 			if b.first_page:
 				raise
@@ -248,6 +257,21 @@ class ual_selenium_session(ual_session):
 				b.get_startpage()
 				b.first_page = True
 				self.search(params)
+		except UnexpectedAlertPresentException as e:
+			stderr.write('Received alert: ' + str(e) + '\n')
+			Alert(b).accept()
+			sleep(5)
+			if self.is_retry:
+				result = []
+			else:
+				self.is_retry = True
+				self.search(params)
+		except TimeoutException:
+			if 'There are no flights' in b.page_source:
+				pass
+			else:
+				raise
+
 
 		self.search_results = b.page_source
 		self.tripdata = b.execute_script(fetch_js)

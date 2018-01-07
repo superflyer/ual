@@ -1,13 +1,13 @@
   <head>
   	<title>SuperFlyer Mobile</title>
   	<link href="static/superflyer.css" type="text/css" rel="stylesheet"/>
-  	
-  	
+
+
   	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  	
+
   	<meta name="format-detection" content="telephone=no">
-  	
-  	
+
+
   	<style>
   		#mobileAppBanner{
   			color: white;
@@ -47,28 +47,28 @@
   		}
   	</style>
   </head>
-  
+
   <body>
 
 
-	
+
 	<div id="subHeader">
 		<div id="subHeaderTitle">
-			
+
 				Find Availability
-			
+
 		</div>
 		<div id="subHeaderContent">
-			
+
 		</div>
 	</div>
-	
+
 	<div id="errorContainer" class="info-message">
-		
+
 	</div>
-	
+
  	<div id="content">
-		
+
 	<form action="/searchresults" name="awardUpgrade" method="post">
 
 		<div class="form-group">
@@ -84,35 +84,48 @@
     			<tr>
     				<td>Depart<span class="required"></span></td>
     				<td>
-				    	
-				    		
+
+
 				    	<input type="number" pattern="[0-9]*" name="departMonth" value="{{params.depart_datetime.month if params else today.month}}" class="date-input" size="3" maxlength="2" placeholder="mm" required="true"/> /
-				    	<input type="number" pattern="[0-9]*" name="departDay" value="{{params.depart_datetime.day if params else today.day}}" class="date-input" size="3" maxlength="2" placeholder="dd" required="true"/> 
-				    		
-				        
+				    	<input type="number" pattern="[0-9]*" name="departDay" value="{{params.depart_datetime.day if params else today.day}}" class="date-input" size="3" maxlength="2" placeholder="dd" required="true"/>
+
+
 				    </td>
 				</tr>
     		</table>
     	</div>
-    	
+
+		<div class="form-group">
+    		<table>
+   				<tr>
+    				<td><span>Nonstop</span></td>
+					<td><input type="checkbox" name="nonstop" value="True" {{'checked' if not params or params.nonstop else ''}}></td>
+				</tr>
+   				<tr>
+    				<td><span>Award Search</span></td>
+					<td><input type="checkbox" name="award" value="True" {{'' if not params or not params.award else 'checked'}}></td>
+				</tr>
+
+		   	</table>
+		</div>
 
 		<div class="form-group">
    			<table>
    				<tr>
 					<td align=center><input type="checkbox" name="classCodeO" value="O" {{'checked' if params and 'O' in params.buckets else ''}}></td>
-    				<td><span>First - Saver Award (O)</span></td>			    			
+    				<td><span>First - Saver Award (O)</span></td>
 				</tr>
    				<tr>
 					<td align=center><input type="checkbox" name="classCodeI" value="I" {{'checked' if params and 'I' in params.buckets else ''}}></td>
-    				<td><span>Business - Saver Award (I/IN)</span></td>			    			
+    				<td><span>Business - Saver Award (I/IN)</span></td>
 				</tr>
    				<tr>
 					<td align=center><input type="checkbox" name="classCodeR" value="R" {{'checked' if params and 'R' in params.buckets else ''}}></td>
-    				<td><span>Business - Upgrade (R/RN)</span></td>			    			
+    				<td><span>Business - Upgrade (R/RN)</span></td>
 				</tr>
    				<tr>
 					<td align=center><input type="checkbox" name="classCodeX" value="X" {{'checked' if params and 'X' in params.buckets else ''}}></td>
-    				<td><span>Coach - Saver Award (X/XN)</span></td>			    			
+    				<td><span>Coach - Saver Award (X/XN)</span></td>
 				</tr>
     			<tr>
 					<td align=center><input type="checkbox" name="otherCheck" value="True" {{'checked' if params and params.other_buckets() else ''}}></td>
@@ -120,30 +133,31 @@
     			</tr>
    				<tr>
 					<td align=center><input type="checkbox" name="allClasses" value="True" {{'checked' if params and not params.buckets else ''}}></td>
-    				<td><span>All booking codes</span></td>			    			
+    				<td><span>All booking codes</span></td>
 				</tr>
     		</table>
     	</div>
 
 
 
-	    
+
 		<div class="form-group">
     		<table>
     			<tr>
     				<td>Airline</td>
     				<td>
     					<select name="airlineCode">
-    						
+
 					        	<option value="UA" Selected='Selected' >United - UA</option>
 					        	<option value="AC"  >Air Canada - AC</option>
-					        	<option value="NK"  >ANA - NH</option>
+					        	<option value="NZ"  >Air New Zealand - NZ</option>
+					        	<option value="NH"  >ANA - NH</option>
 				       			<option value="SN"  >Brussels Airlines - SN</option>
 					        	<option value="LH"  >Lufthansa - LH</option>
 					        	<option value="LX"  >SWISS - LX</option>
 					        	<option value="TK"  >Turkish Airlines - TK</option>
-				            
-				            
+
+
     					</select>
     				</td>
     			</tr>
@@ -151,14 +165,10 @@
     				<td>Flight No.</td>
 					<td><input type="number" pattern="[0-9]*" name="flightNumber" value="" autocorrect="off" /></td>
 				</tr>
-   				<tr>
-    				<td><span>Nonstop</span></td>			    			
-					<td><input type="checkbox" name="nonstop" value="True" {{'checked' if not params or params.nonstop else ''}}></td>
-				</tr>
 
 		   	</table>
 		</div>
-		
+
 		<div class="button-container">
 			<input type="image" src="static/button-submit.png" alt="Submit">
 		</div>
@@ -166,10 +176,10 @@
 <!--    	<div class="button-container">
     		<input type="submit" name="search" class="button search" value="Search" />
 		</div>
-	</form>  
-  
+	</form>
+
 	</div>
-	
+
 
   </body>
 </html>

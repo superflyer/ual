@@ -13,23 +13,23 @@
 	</script>
 
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  	
+
   	<meta name="format-detection" content="telephone=no">
-  	
+
        <style type="text/css">
-		    
+
 		    #availabilityCodesContiner{
 		    	padding-left:7px;
 		    }
-		    
+
 		    #availabilityCodesContiner h3,
 		    #availabilityCodesContiner label{
 		    	font-weight:bold;
 		    }
-       		
+
        </style>
-  
-  	
+
+
   	<style>
   		#mobileAppBanner{
   			color: white;
@@ -69,13 +69,13 @@
   		}
   	</style>
   </head>
-  
+
   <body>
-  
+
 	<div id="subHeader">
 		<div id="subHeaderTitle">
-			{{params.depart_airport.upper()}} to {{params.arrive_airport.upper()}} 
-			on {{params.depart_datetime.strftime('%a')}} 
+			{{params.depart_airport.upper()}} to {{params.arrive_airport.upper()}}
+			on {{params.depart_datetime.strftime('%a')}}
 			{{params.depart_datetime.strftime('%m/%d/%y').strip('0')}}
 		</div>
 		<div id="subHeaderContent">
@@ -93,7 +93,7 @@
 		</div>
 		<div>
 		</div>
-  
+
 		</div>
 	</div>
 	<div id="errorContainer" class="info-message">
@@ -113,10 +113,10 @@
 									</div>
 								</td>
 								<td class="info">
-									{{seg.depart_airport}} 
-									{{seg.depart_datetime.strftime('%H:%M')+seg.depart_offset}} &rarr; 
+									{{seg.depart_airport}}
+									{{seg.depart_datetime.strftime('%H:%M')+seg.depart_offset}} &rarr;
 									{{seg.arrive_airport}} {{seg.arrive_datetime.strftime('%H:%M')+seg.arrive_offset}}
-									<div class="info-subheader">{{seg.bucket_repr()}} 
+									<div class="info-subheader">{{seg.bucket_repr()}}
 									</div>
 								</td>
 							</tr>
@@ -129,13 +129,14 @@
 		<form action="/searchresults" name="previousDay" method="post">
 			<input type="hidden" name="departAirport" value={{params.depart_airport.upper()}}>
 			<input type="hidden" name="arriveAirport" value={{params.arrive_airport.upper()}}>
-			<input type="hidden" name="departMonth" 
+			<input type="hidden" name="departMonth"
 				value={{(params.depart_datetime + params.timedelta(days=-1)).strftime('%m')}}>
-			<input type="hidden" name="departDay" 
+			<input type="hidden" name="departDay"
 				value={{(params.depart_datetime + params.timedelta(days=-1)).strftime('%d')}}>
 			<input type="hidden" name="airlineCode" value="UA">
 			<input type="hidden" name="flightNumber" value={{params.flightno}}>
 			<input type="hidden" name="nonstop" value={{params.nonstop if params.nonstop else False}}>
+			<input type="hidden" name="award" value={{params.award if params.award else False}}>
 			<input type="hidden" name="otherCheck" value={{True if params.buckets else False}}>
 			<input type="hidden" name="otherClassCodes" value={{params.buckets}}>
 			<input type="hidden" name="all_classes" value={{True if not params.buckets else False}}>
@@ -144,14 +145,15 @@
 		<form action="/searchresults" name="nextDay" method="post">
 			<input type="hidden" name="departAirport" value={{params.depart_airport.upper()}}>
 			<input type="hidden" name="arriveAirport" value={{params.arrive_airport.upper()}}>
-			<input type="hidden" name="departMonth" 
+			<input type="hidden" name="departMonth"
 				value={{(params.depart_datetime + params.timedelta(days=1)).strftime('%m')}}>
-			<input type="hidden" name="departDay" 
+			<input type="hidden" name="departDay"
 				value={{(params.depart_datetime + params.timedelta(days=1)).strftime('%d')}}>
 			<input type="hidden" name="buckets" value={{params.buckets}}>
 			<input type="hidden" name="airlineCode" value="UA">
 			<input type="hidden" name="flightNumber" value={{params.flightno}}>
 			<input type="hidden" name="nonstop" value={{params.nonstop if params.nonstop else False}}>
+			<input type="hidden" name="award" value={{params.award if params.award else False}}>
 			<input type="hidden" name="otherCheck" value={{True if params.buckets else False}}>
 			<input type="hidden" name="otherClassCodes" value={{params.buckets}}>
 			<input type="hidden" name="all_classes" value={{True if not params.buckets else False}}>
@@ -159,16 +161,16 @@
 
 		<ul class="menu">
 			<li><a href="/ual"><span>New Search</span></a></li>
-			<li><a href="/ual?depart_airport={{params.depart_airport.upper()}}&arrive_airport={{params.arrive_airport.upper()}}&depart_date={{params.depart_date}}&buckets={{params.buckets}}&flightno={{params.flightno}}&nonstop={{params.nonstop if params.nonstop else ''}}&refine=true"><span>Refine Search</span></a></li>
-			<li><a href="/ual?depart_airport={{params.arrive_airport.upper()}}&arrive_airport={{params.depart_airport.upper()}}&depart_date={{params.depart_date}}&buckets={{params.buckets}}&flightno={{params.flightno}}&nonstop={{params.nonstop if params.nonstop else ''}}&refine=true"><span>Refine Search for Return Availability ({{params.arrive_airport.upper()}}-{{params.depart_airport.upper()}})</span></a></li>
+			<li><a href="/ual?depart_airport={{params.depart_airport.upper()}}&arrive_airport={{params.arrive_airport.upper()}}&depart_date={{params.depart_date}}&buckets={{params.buckets}}&flightno={{params.flightno}}&nonstop={{params.nonstop if params.nonstop else ''}}&award={{params.award if params.award else ''}}&refine=true"><span>Refine Search</span></a></li>
+			<li><a href="/ual?depart_airport={{params.arrive_airport.upper()}}&arrive_airport={{params.depart_airport.upper()}}&depart_date={{params.depart_date}}&buckets={{params.buckets}}&flightno={{params.flightno}}&nonstop={{params.nonstop if params.nonstop else ''}}&award={{params.award if params.award else ''}}&refine=true"><span>Refine Search for Return Availability ({{params.arrive_airport.upper()}}-{{params.depart_airport.upper()}})</span></a></li>
 			<li><a href="javascript: searchPrev()"><span>Search Previous Day</span></a></li>
 			<li><a href="javascript: searchNext()"><span>Search Next Day</span></a></li>
 		</ul>
 	<!-- </form>   -->
-  
+
 	</div>
 	<div id="footer" align="center">
 				&nbsp;
-	</div>  
+	</div>
   </body>
 </html>

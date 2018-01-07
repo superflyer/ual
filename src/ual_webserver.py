@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 
+import argparse
+import sys
+
 from bottle import route, run, template, Bottle
 from bottle import get, post, request
 from bottle import static_file
-from time import localtime, strftime
 from datetime import datetime, timedelta
 from dateutil import parser
 from re import search
-import sys
-import argparse
+from selenium.common.exceptions import UnexpectedAlertPresentException
+from time import localtime, strftime
 
 from ual import *
 from ual_functions import format_aircraft
@@ -32,10 +34,11 @@ def server_static(filename):
 def query_form():
 	if request.query.refine:
 		q = request.query
-		params = alert_params(q.depart_date,q.depart_airport,q.arrive_airport,q.flightno,q.buckets,nonstop=q.nonstop)
+		params = alert_params(q.depart_date,q.depart_airport,q.arrive_airport,
+			q.flightno,q.buckets,nonstop=q.nonstop,award=q.award)
+		print(params)
 	else:
 		params = None
-	print(params)
 	return template("templates/query", today=datetime.today(), params=params)
 
 
@@ -46,7 +49,7 @@ def query_submit():
 
 	if not S:
 		config = configure(args.c)
-		S = open_session(config, search_type=search_type)
+		S = open_session(config, search_type=search_type, logging=args.d, debug=args.d)
 
 	depart_airport = request.forms.get('departAirport')
 	arrive_airport = request.forms.get('arriveAirport')
@@ -63,6 +66,7 @@ def query_submit():
 	airline = request.forms.get('airlineCode')
 	flightno = request.forms.get('flightNumber')
 	nonstop = request.forms.get('nonstop')
+	award = request.forms.get('award')
 
 	# add the correct year to the departure date
 	if int(depart_month) > date.today().month or \
@@ -88,32 +92,26 @@ def query_submit():
 			buckets += other_codes
 
 	print(depart_airport, arrive_airport, depart_month, depart_day, depart_year,
-		buckets, other_codes, all_classes, airline, flightno, nonstop)
+		buckets, other_codes, all_classes, airline, flightno, nonstop, award)
 
 	flightno = airline + flightno
 
-	params = alert_params(depart_date,depart_airport,arrive_airport,flightno,buckets,nonstop=nonstop)
-	if args.t:
-		# testing mode
-		F = open('ual_test/international.html')
-		raw_data = F.read()
-		F.close()
-		# need to mock up a session
-		result = extract_html_data(raw_data)
-		for trip in result:
-			for seg in trip:
-				seg.format_deptime()
-				seg.format_arrtime()
-				if params.buckets:
-					seg.search_buckets(params.buckets)
-		return
+	params = alert_params(depart_date,depart_airport,arrive_airport,flightno,
+		buckets,nonstop=nonstop,award=award)
 
 	# last session timed out
 	if S.browser.last_refresh_time < datetime.now() - timedelta(minutes=30):
 		S.browser.get_startpage()
 
 	# do the search
-	result = S.basic_search(params)
+	try:
+		result = S.basic_search(params)
+	except UnexpectedAlertPresentException as e:
+		stderr.write('Received alert: ' + str(e) + '\n')
+		Alert(S.browser).accept()
+		sleep(5)
+		result = []
+
 	# can't be sure that nonstop flag works
 	if params.nonstop:
 		result = [t for t in result if len(t)==1]
@@ -126,7 +124,13 @@ def query_submit():
 	# need to pass this function to the results template
 	params.timedelta = timedelta
 
-	S.browser.get_startpage(wait=False)
+	try:
+		S.browser.get_startpage(wait=False)
+	except UnexpectedAlertPresentException as e:
+		stderr.write('Received alert: ' + str(e) + '\n')
+		Alert(S.browser).accept()
+		sleep(5)
+
 	return template("templates/results", params=params, data=sorted_result)
 
 
@@ -136,8 +140,8 @@ if __name__=='__main__':
 		description='Web app to search united.com for flight availability.')
 	argparser.add_argument("-l", action="store_true",
 		help="run on localhost")
-	argparser.add_argument("-t", action="store_true",
-		help="run in testing mode")
+	argparser.add_argument("-d", action="store_true",
+		help="run in debug mode")
 	argparser.add_argument('-c', metavar="config_file", default="ual.config", type=str,
 		help="filename containing configuration parameters (default: ual.config)")
 	argparser.add_argument('-p', metavar="port", default="80", type=int,
@@ -154,6 +158,8 @@ if __name__=='__main__':
 		search_type = 'No-Expert'
 	else:
 		search_type = None
+
+	debug = args.d
 
 	# global variable to hold session
 	config = configure(args.c)

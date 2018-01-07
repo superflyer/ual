@@ -194,7 +194,7 @@ class Segment(object):
 
 class alert_params(object):
 	def __init__(self, depart_date, depart_airport, arrive_airport, flightno=None, buckets=None,
-			nonstop=False, cookies=None):
+			nonstop=False, award=False, cookies=None):
 		self.depart_airport=depart_airport.upper()
 		self.arrive_airport=arrive_airport.upper()
 		self.buckets=buckets.upper() if buckets else ''
@@ -207,6 +207,7 @@ class alert_params(object):
 			raise ValueError('Depart date is more than %s days in the future.' % max_days_out)
 		self.depart_date=depart_date
 		self.nonstop=nonstop
+		self.award=award
 		self.cookies=cookies
 	def __repr__(self):
 		return ' '.join([self.depart_date,
@@ -214,7 +215,8 @@ class alert_params(object):
 			self.depart_airport,
 			self.arrive_airport,
 			self.buckets if self.buckets else '',
-			'NS' if self.nonstop else ''])
+			'NS' if self.nonstop else '',
+			'Award' if self.award else ''])
 	def __str__(self):
 		return self.__repr__()
 	def copy(self):
