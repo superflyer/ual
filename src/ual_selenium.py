@@ -233,7 +233,7 @@ class ual_selenium_session(ual_session):
 		b.replace_text(Origin, params.depart_airport + Keys.TAB)
 		b.replace_text(Destination, params.arrive_airport + Keys.TAB)
 		search_btn.click()
-		if logging:
+		if b.logging:
 			stdout.write('Initiated search\n')
 
 		try:
