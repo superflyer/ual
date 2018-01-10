@@ -140,35 +140,6 @@
 
 
 
-
-		<div class="form-group">
-    		<table>
-    			<tr>
-    				<td>Airline</td>
-    				<td>
-    					<select name="airlineCode">
-
-					        	<option value="UA" Selected='Selected' >United - UA</option>
-					        	<option value="AC"  >Air Canada - AC</option>
-					        	<option value="NZ"  >Air New Zealand - NZ</option>
-					        	<option value="NH"  >ANA - NH</option>
-				       			<option value="SN"  >Brussels Airlines - SN</option>
-					        	<option value="LH"  >Lufthansa - LH</option>
-					        	<option value="LX"  >SWISS - LX</option>
-					        	<option value="TK"  >Turkish Airlines - TK</option>
-
-
-    					</select>
-    				</td>
-    			</tr>
-    			<tr>
-    				<td>Flight No.</td>
-					<td><input type="number" pattern="[0-9]*" name="flightNumber" value="" autocorrect="off" /></td>
-				</tr>
-
-		   	</table>
-		</div>
-
 		<div class="button-container">
 			<input type="image" src="static/button-submit.png" alt="Submit">
 		</div>

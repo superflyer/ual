@@ -133,8 +133,6 @@
 				value={{(params.depart_datetime + params.timedelta(days=-1)).strftime('%m')}}>
 			<input type="hidden" name="departDay"
 				value={{(params.depart_datetime + params.timedelta(days=-1)).strftime('%d')}}>
-			<input type="hidden" name="airlineCode" value="UA">
-			<input type="hidden" name="flightNumber" value={{params.flightno}}>
 			<input type="hidden" name="nonstop" value={{params.nonstop if params.nonstop else False}}>
 			<input type="hidden" name="award" value={{params.award if params.award else False}}>
 			<input type="hidden" name="otherCheck" value={{True if params.buckets else False}}>
@@ -150,8 +148,6 @@
 			<input type="hidden" name="departDay"
 				value={{(params.depart_datetime + params.timedelta(days=1)).strftime('%d')}}>
 			<input type="hidden" name="buckets" value={{params.buckets}}>
-			<input type="hidden" name="airlineCode" value="UA">
-			<input type="hidden" name="flightNumber" value={{params.flightno}}>
 			<input type="hidden" name="nonstop" value={{params.nonstop if params.nonstop else False}}>
 			<input type="hidden" name="award" value={{params.award if params.award else False}}>
 			<input type="hidden" name="otherCheck" value={{True if params.buckets else False}}>
@@ -161,8 +157,8 @@
 
 		<ul class="menu">
 			<li><a href="/ual"><span>New Search</span></a></li>
-			<li><a href="/ual?depart_airport={{params.depart_airport.upper()}}&arrive_airport={{params.arrive_airport.upper()}}&depart_date={{params.depart_date}}&buckets={{params.buckets}}&flightno={{params.flightno}}&nonstop={{params.nonstop if params.nonstop else ''}}&award={{params.award if params.award else ''}}&refine=true"><span>Refine Search</span></a></li>
-			<li><a href="/ual?depart_airport={{params.arrive_airport.upper()}}&arrive_airport={{params.depart_airport.upper()}}&depart_date={{params.depart_date}}&buckets={{params.buckets}}&flightno={{params.flightno}}&nonstop={{params.nonstop if params.nonstop else ''}}&award={{params.award if params.award else ''}}&refine=true"><span>Refine Search for Return Availability ({{params.arrive_airport.upper()}}-{{params.depart_airport.upper()}})</span></a></li>
+			<li><a href="/ual?depart_airport={{params.depart_airport.upper()}}&arrive_airport={{params.arrive_airport.upper()}}&depart_date={{params.depart_date}}&buckets={{params.buckets}}&nonstop={{params.nonstop if params.nonstop else ''}}&award={{params.award if params.award else ''}}&refine=true"><span>Refine Search</span></a></li>
+			<li><a href="/ual?depart_airport={{params.arrive_airport.upper()}}&arrive_airport={{params.depart_airport.upper()}}&depart_date={{params.depart_date}}&buckets={{params.buckets}}&nonstop={{params.nonstop if params.nonstop else ''}}&award={{params.award if params.award else ''}}&refine=true"><span>Refine Search for Return Availability ({{params.arrive_airport.upper()}}-{{params.depart_airport.upper()}})</span></a></li>
 			<li><a href="javascript: searchPrev()"><span>Search Previous Day</span></a></li>
 			<li><a href="javascript: searchNext()"><span>Search Next Day</span></a></li>
 		</ul>

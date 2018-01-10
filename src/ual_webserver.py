@@ -35,7 +35,7 @@ def query_form():
 	if request.query.refine:
 		q = request.query
 		params = alert_params(q.depart_date,q.depart_airport,q.arrive_airport,
-			q.flightno,q.buckets,nonstop=q.nonstop,award=q.award)
+			q.buckets,nonstop=q.nonstop,award=q.award)
 		print(params)
 	else:
 		params = None
@@ -63,8 +63,6 @@ def query_submit():
 	other = request.forms.get('otherCheck')
 	other_codes = request.forms.get('otherClassCodes')
 	all_classes = request.forms.get('allClasses')
-	airline = request.forms.get('airlineCode')
-	flightno = request.forms.get('flightNumber')
 	nonstop = request.forms.get('nonstop')
 	award = request.forms.get('award')
 
@@ -92,9 +90,9 @@ def query_submit():
 			buckets += other_codes
 
 	print(depart_airport, arrive_airport, depart_month, depart_day, depart_year,
-		buckets, other_codes, all_classes, airline, flightno, nonstop, award)
+		buckets, other_codes, all_classes, nonstop, award)
 
-	flightno = airline + flightno
+	flightno = None
 
 	params = alert_params(depart_date,depart_airport,arrive_airport,flightno,
 		buckets,nonstop=nonstop,award=award)
