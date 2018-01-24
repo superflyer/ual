@@ -189,6 +189,7 @@ class ual_selenium_session(ual_session):
 		self.browser = browser
 		self.debug = browser.debug
 		browser.first_page = True
+		self.is_retry = False
 
 
 	def __enter__(self):
@@ -275,6 +276,7 @@ class ual_selenium_session(ual_session):
 
 		self.search_results = b.page_source
 		self.tripdata = b.execute_script(fetch_js)
+		self.is_retry = False
 
 
 class AuthorizationError(Exception):

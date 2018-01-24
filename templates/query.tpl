@@ -109,6 +109,10 @@
 		   	</table>
 		</div>
 
+		<div class="button-container">
+			<input type="image" src="static/button-submit.png" alt="Submit">
+		</div>
+
 		<div class="form-group">
    			<table>
    				<tr>
@@ -140,13 +144,7 @@
 
 
 
-		<div class="button-container">
-			<input type="image" src="static/button-submit.png" alt="Submit">
-		</div>
 
-<!--    	<div class="button-container">
-    		<input type="submit" name="search" class="button search" value="Search" />
-		</div>
 	</form>
 
 	</div>
