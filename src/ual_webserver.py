@@ -34,8 +34,14 @@ def server_static(filename):
 def query_form():
 	if request.query.refine:
 		q = request.query
-		params = alert_params(q.depart_date,q.depart_airport,q.arrive_airport,
-			q.buckets,nonstop=q.nonstop,award=q.award)
+		params = alert_params(
+				q.depart_date,
+				q.depart_airport,
+				q.arrive_airport,
+				q.buckets,
+				nonstop=False if not q.nonstop else eval(q.nonstop),
+				award=False if not q.award else eval(q.award),
+			)
 		print(params)
 	else:
 		params = None
@@ -63,8 +69,8 @@ def query_submit():
 	other = request.forms.get('otherCheck')
 	other_codes = request.forms.get('otherClassCodes')
 	all_classes = request.forms.get('allClasses')
-	nonstop = request.forms.get('nonstop')
-	award = request.forms.get('award')
+	nonstop = False if not request.forms.get('nonstop') else eval(request.forms.get('nonstop'))
+	award = False if not request.forms.get('award') else eval(request.forms.get('award'))
 
 	# add the correct year to the departure date
 	if int(depart_month) > date.today().month or \

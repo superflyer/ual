@@ -157,8 +157,8 @@
 
 		<ul class="menu">
 			<li><a href="/ual"><span>New Search</span></a></li>
-			<li><a href="/ual?depart_airport={{params.depart_airport.upper()}}&arrive_airport={{params.arrive_airport.upper()}}&depart_date={{params.depart_date}}&buckets={{params.buckets}}&nonstop={{params.nonstop if params.nonstop else ''}}&award={{params.award if params.award else ''}}&refine=true"><span>Refine Search</span></a></li>
-			<li><a href="/ual?depart_airport={{params.arrive_airport.upper()}}&arrive_airport={{params.depart_airport.upper()}}&depart_date={{params.depart_date}}&buckets={{params.buckets}}&nonstop={{params.nonstop if params.nonstop else ''}}&award={{params.award if params.award else ''}}&refine=true"><span>Refine Search for Return Availability ({{params.arrive_airport.upper()}}-{{params.depart_airport.upper()}})</span></a></li>
+			<li><a href="/ual?depart_airport={{params.depart_airport.upper()}}&arrive_airport={{params.arrive_airport.upper()}}&depart_date={{params.depart_date}}&buckets={{params.buckets}}&nonstop={{params.nonstop if params.nonstop else ''}}&award={{params.award if params.award else ''}}&refine=True"><span>Refine Search</span></a></li>
+			<li><a href="/ual?depart_airport={{params.arrive_airport.upper()}}&arrive_airport={{params.depart_airport.upper()}}&depart_date={{params.depart_date}}&buckets={{params.buckets}}&nonstop={{params.nonstop if params.nonstop else ''}}&award={{params.award if params.award else ''}}&refine=True"><span>Refine Search for Return Availability ({{params.arrive_airport.upper()}}-{{params.depart_airport.upper()}})</span></a></li>
 			<li><a href="javascript: searchPrev()"><span>Search Previous Day</span></a></li>
 			<li><a href="javascript: searchNext()"><span>Search Next Day</span></a></li>
 		</ul>
