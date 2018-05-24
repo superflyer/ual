@@ -280,13 +280,24 @@ class ual_session(requests.Session):
 			if params.nonstop and len(t) > 1:
 				continue
 			for seg in t:
-				srg.format_deptime()
+				seg.format_deptime()
+				deptime = 100*seg.depart_datetime.hour + seg.depart_datetime.minute
 				seg.search_buckets(params.buckets)
 				# known bug: time-based search doesn't properly handle flights departing after midnight 
-				if (not params.flightno) \
-						or (seg.flightno in params.flightno) \
-						or params.flightno[0]=='>' and deptime > int(params.flightno[1:]) \
-						or params.flightno[0]=='<' and deptime < int(params.flightno[1:]):
+				if (
+					not params.flightno
+				) or (
+					seg.flightno in params.flightno
+				) or (
+					params.flightno[0]=='>' and (
+						deptime > int(params.flightno[1:]) or 
+						seg.depart_datetime.day > seg.search_datetime.day
+					) 
+				) or (
+					params.flightno[0]=='<' and 
+					deptime < int(params.flightno[1:]) and
+					seg.search_datetime.day == seg.depart_datetime.day
+				):
 					found_segs.append(seg)
 		if len(found_segs)==0:
 			raise Exception('No results found for '+str(params))
