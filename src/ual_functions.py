@@ -113,16 +113,16 @@ class Segment(object):
 		self.arrive_airport,self.arrive_date,self.arrive_time,self.aircraft,
 		' '.join(self.availability)]
 		return(' '.join(paramlist))
+
 	def __str__(self):
 		return self.__repr__()
+
 	def format_deptime(self):
 		self.depart_datetime = parser.parse(self.depart_date+' '+self.depart_time)
 		if self.depart_datetime.day == self.search_datetime.day:
 			self.depart_offset = ''
 		else:
 			self.depart_offset = '+' + str((self.depart_datetime - self.search_datetime).days)
-
-#		return self.depart_datetime.strftime('%m/%d/%y %H:%M')
 
 	def format_arrtime(self):
 		self.arrive_datetime = parser.parse(self.arrive_date+' '+self.arrive_time)
@@ -146,15 +146,6 @@ class Segment(object):
 					elite_count = ''
 				result_list.append(bucketname+str(basic_count)+str(elite_count))
 			return ' '.join(result_list)
-
-			# return ' '.join([
-			# 	(remapped_classes[b] if b in remapped_classes else b)+
-			# 	str(self.search_results[b])+
-			# 	(str(self.search_results[b+'N']) if b in Nclasses else '')
-			#  for b in self.search_query])
-
-#		elif self.search_query=='':
-#			return 'NA'
 		else:
 			return ' '.join(self.availability)
 
@@ -193,8 +184,18 @@ class Segment(object):
 
 
 class alert_params(object):
-	def __init__(self, depart_date, depart_airport, arrive_airport, flightno=None, buckets=None,
-			nonstop=False, award=False, cookies=None):
+	def __init__(self, 
+			depart_date, 
+			depart_airport, 
+			arrive_airport, 
+			flightno=None,		# this can be a comma-separated list of flight numbers "UA123,UA456,LH789"
+								# or a time constraint ">1200", "<1630"
+			buckets=None,		# buckets to be searched.  *N are included. 
+								# see remapped_classes for special cases.  example: "FAPIR2"
+			nonstop=False, 
+			award=False, 
+			cookies=None,
+	):
 		self.depart_airport=depart_airport.upper()
 		self.arrive_airport=arrive_airport.upper()
 		self.buckets=buckets.upper() if buckets else ''

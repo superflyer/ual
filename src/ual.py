@@ -119,7 +119,7 @@ def run_alerts(config, filename='alerts/alert_defs.txt', aggregate=False,
 
 	#with
 	ses = open_session(config, ua_only=ua_only, logging=logging,
-	search_type=search_type, debug=debug)# as ses:
+		search_type=search_type, debug=debug)
 	for a in alert_defs:
 		# search for alerts
 		try:
