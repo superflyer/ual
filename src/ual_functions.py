@@ -12,7 +12,7 @@ airport_pattern = re.compile('.*\(([A-Z]{3}).*\).*')
 Fclasses = ['F','FN','A','ON','O']
 Jclasses = ['J','JN','C','D','Z','ZN','P','PN','R','RN','IN','I']
 Yclasses = ['Y','YN','B','M','E','U','H','HN','Q','V','W','S','T','L','K','G','N','XN','X']
-Nclasses = ['R','I','X']  # removing ON since this is C->F upgrade
+Nclasses = ['R','I','X','P']
 remapped_classes = {'1':'HN', '2':'PN'}
 min_avail = 'FJY'
 award_buckets = 'OIRX'
@@ -144,7 +144,7 @@ class Segment(object):
 					elite_count = self.search_results[b+'N'] if b in Nclasses and self.flightno[:2]=='UA' else ''
 				except KeyError:
 					elite_count = ''
-				result_list.append(bucketname+str(basic_count)+str(elite_count))
+				result_list.append(bucketname+str(elite_count)+str(basic_count))
 			return ' '.join(result_list)
 		else:
 			return ' '.join(self.availability)

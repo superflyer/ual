@@ -4,7 +4,7 @@ from ual import *
 import json
 
 def test(num_tests=1, search_type='Award'):
-	config = configure('../ual.config')
+	config = configure('ual.config')
 	results = []
 	S = ual_session(config['ual_user'],config['ual_pwd'],useragent=config['spoofUA'],logging=True)
 #		search_type=search_type)
