@@ -144,7 +144,7 @@ class Segment(object):
 					elite_count = self.search_results[b+'N'] if b in Nclasses and self.flightno[:2]=='UA' else ''
 				except KeyError:
 					elite_count = ''
-				result_list.append(bucketname+str(elite_count)+str(basic_count))
+				result_list.append(bucketname+str(basic_count)+str(elite_count))
 			return ' '.join(result_list)
 		else:
 			return ' '.join(self.availability)
