@@ -9,11 +9,11 @@ from email.mime.text import MIMEText
 
 #global constants
 airport_pattern = re.compile('.*\(([A-Z]{3}).*\).*')
-Fclasses = ['F','FN','A','ON','O']
-Jclasses = ['J','JN','C','D','Z','ZN','P','PN','R','RN','IN','I']
+Fclasses = ['F','A','O']
+Jclasses = ['J','JN','C','D','Z','ZN','P','PN','IN','I']
 Yclasses = ['Y','YN','B','M','E','U','H','HN','Q','V','W','S','T','L','K','G','N','XN','X']
 Nclasses = ['R','I','X','P']
-remapped_classes = {'1':'HN', '2':'PN'}
+remapped_classes = {'1':'HN', '2':'PN', '0':'PZ'}
 min_avail = 'FJY'
 award_buckets = 'OIRX'
 #bucket_regex = re.compile(', '.join([c+'[0-9]' for c in Yclasses]))
