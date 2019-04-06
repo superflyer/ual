@@ -283,20 +283,23 @@ class ual_session(requests.Session):
 				seg.format_deptime()
 				deptime = 100*seg.depart_datetime.hour + seg.depart_datetime.minute
 				seg.search_buckets(params.buckets)
-				# known bug: time-based search doesn't properly handle flights departing after midnight 
+				search_times = params.flightno.split(':')
+				if len(search_times) == 2:
+					search_times[0] = search_times[0] or '0000'
+					search_times[1] = search_times[1] or '2359'
 				if (
 					not params.flightno
 				) or (
 					seg.flightno in params.flightno
 				) or (
-					params.flightno[0]=='>' and (
-						deptime > int(params.flightno[1:]) or 
+					len(search_times) == 2 and 
+					(
+						deptime >= int(search_times[0]) or 
 						seg.depart_datetime.day > seg.search_datetime.day
-					) 
-				) or (
-					params.flightno[0]=='<' and 
-					deptime < int(params.flightno[1:]) and
-					seg.search_datetime.day == seg.depart_datetime.day
+					) and (
+						deptime <= int(search_times[1]) and
+						seg.search_datetime.day == seg.depart_datetime.day
+					)
 				):
 					found_segs.append(seg)
 		if len(found_segs)==0:

@@ -76,7 +76,7 @@
 		<div id="subHeaderTitle">
 			{{params.depart_airport.upper()}} to {{params.arrive_airport.upper()}}
 			on {{params.depart_datetime.strftime('%a')}}
-			{{params.depart_datetime.strftime('%m/%d/%y').strip('0')}}
+			{{params.depart_datetime.strftime('%m/').strip('0')}}{{params.depart_datetime.strftime('%d/%y')}}
 		</div>
 		<div id="subHeaderContent">
   		<div>

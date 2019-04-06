@@ -153,7 +153,7 @@ class Segment(object):
 		self.format_deptime()
 		self.format_arrtime()
 		output_params = [self.search_datetime.strftime('%a'),
-			self.search_datetime.strftime('%m/%d/%y').strip('0'),
+			self.search_datetime.strftime('%m/').strip('0')+self.search_datetime.strftime('%d/%y'),
 			self.flightno,
 			format_airport(self.depart_airport),
 			self.depart_datetime.strftime('%H:%M')+self.depart_offset,
@@ -189,7 +189,7 @@ class alert_params(object):
 			depart_airport, 
 			arrive_airport, 
 			flightno=None,		# this can be a comma-separated list of flight numbers "UA123,UA456,LH789"
-								# or a time constraint ">1200", "<1630"
+								# or a time constraint "1300:1800", "1200:", ":1730"
 			buckets=None,		# buckets to be searched.  *N are included. 
 								# see remapped_classes for special cases.  example: "FAPIR2"
 			nonstop=False, 
