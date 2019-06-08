@@ -9,11 +9,11 @@ from email.mime.text import MIMEText
 
 #global constants
 airport_pattern = re.compile('.*\(([A-Z]{3}).*\).*')
-Fclasses = ['F','FN','A','ON','O']
-Jclasses = ['J','JN','C','D','Z','ZN','P','PN','R','RN','IN','I']
+Fclasses = ['F','A','O']
+Jclasses = ['J','JN','C','D','Z','ZN','P','PN','IN','I']
 Yclasses = ['Y','YN','B','M','E','U','H','HN','Q','V','W','S','T','L','K','G','N','XN','X']
 Nclasses = ['R','I','X','P']
-remapped_classes = {'1':'HN', '2':'PN'}
+remapped_classes = {'1':'HN', '2':'PN', '0':'PZ'}
 min_avail = 'FJY'
 award_buckets = 'OIRX'
 #bucket_regex = re.compile(', '.join([c+'[0-9]' for c in Yclasses]))
@@ -153,7 +153,7 @@ class Segment(object):
 		self.format_deptime()
 		self.format_arrtime()
 		output_params = [self.search_datetime.strftime('%a'),
-			self.search_datetime.strftime('%m/%d/%y').strip('0'),
+			self.search_datetime.strftime('%m/').strip('0')+self.search_datetime.strftime('%d/%y'),
 			self.flightno,
 			format_airport(self.depart_airport),
 			self.depart_datetime.strftime('%H:%M')+self.depart_offset,
@@ -189,7 +189,7 @@ class alert_params(object):
 			depart_airport, 
 			arrive_airport, 
 			flightno=None,		# this can be a comma-separated list of flight numbers "UA123,UA456,LH789"
-								# or a time constraint ">1200", "<1630"
+								# or a time constraint "1300:1800", "1200:", ":1730"
 			buckets=None,		# buckets to be searched.  *N are included. 
 								# see remapped_classes for special cases.  example: "FAPIR2"
 			nonstop=False, 
